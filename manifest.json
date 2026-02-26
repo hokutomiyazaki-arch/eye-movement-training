@@ -1,0 +1,25 @@
+{
+  "name": "Eye Movement Training - FNT",
+  "short_name": "Eye Training",
+  "description": "Functional Neuro Training: Eye Movement Training for neurological rehabilitation",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#f5f5f5",
+  "theme_color": "#ffffff",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "FNT512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "FNT512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

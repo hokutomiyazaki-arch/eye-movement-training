@@ -1,0 +1,2456 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="FNT512.png">
+<title>Eye Movement Training - FNT</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #1a1a2e;
+  --text-secondary: #5a6270;
+  --accent-blue: #2563eb;
+  --accent-green: #16a34a;
+  --accent-orange: #d97706;
+  --accent-red: #dc2626;
+  --accent-purple: #7c3aed;
+  --accent-cyan: #0891b2;
+  --border-color: #d1d5db;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-overflow-scrolling: none;
+  overscroll-behavior: none;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+}
+
+/* === SPLASH SCREEN === */
+#splash {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: #ffffff;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 10000;
+  transition: opacity 0.6s ease;
+  padding: 20px;
+}
+#splash.hidden { opacity: 0; pointer-events: none; }
+#splash img { width: 120px; height: 120px; margin-bottom: 16px; }
+#splash .splash-title {
+  font-size: 14px; color: var(--text-secondary);
+  letter-spacing: 2px; text-transform: uppercase;
+  white-space: nowrap; margin-bottom: 12px;
+}
+#splash .splash-app-name {
+  font-size: 22px; font-weight: 700;
+  color: var(--text-primary); margin-bottom: 8px;
+  text-align: center;
+}
+#splash .splash-copyright {
+  font-size: 11px; color: var(--text-secondary);
+  position: absolute; bottom: calc(20px + var(--safe-bottom));
+}
+
+/* === MAIN CONTAINER === */
+#app {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  position: relative;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+/* === HEADER === */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 100;
+  min-height: 48px;
+  flex-shrink: 0;
+}
+.header h1 { font-size: 16px; font-weight: 600; flex: 1; text-align: center; }
+.menu-btn {
+  width: 40px; height: 40px;
+  background: none; border: none; color: var(--text-primary);
+  font-size: 24px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.menu-btn:active { background: var(--bg-card); }
+.back-btn { font-size: 20px; }
+
+/* === SIDE MENU === */
+.menu-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.4); z-index: 300;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.menu-overlay.open { opacity: 1; pointer-events: auto; }
+.side-menu {
+  position: fixed; top: 0; right: -340px; width: 320px; max-width: 85vw;
+  height: 100%; background: #fff; z-index: 301;
+  transition: right 0.3s ease;
+  overflow-y: scroll !important; overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+  touch-action: pan-y !important;
+}
+.side-menu, .side-menu * { touch-action: pan-y !important; }
+.side-menu.open { right: 0; }
+.side-menu-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border-color);
+  position: sticky; top: 0; background: #fff; z-index: 1;
+}
+.side-menu-header h2 { font-size: 17px; margin: 0; }
+.side-menu-close {
+  width: 36px; height: 36px; border: none; background: var(--bg-primary);
+  border-radius: 8px; font-size: 18px; cursor: pointer; color: var(--text-secondary);
+}
+.side-menu-body { padding: 16px 20px 80px; }
+.menu-mode-section { margin-bottom: 20px; }
+.menu-mode-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 700; margin-bottom: 6px;
+  color: var(--text-primary);
+}
+.menu-mode-title .icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.menu-mode-title .icon.pursuit { background: rgba(74,144,217,0.2); color: var(--accent-blue); }
+.menu-mode-title .icon.saccade { background: rgba(230,126,34,0.2); color: var(--accent-orange); }
+.menu-mode-title .icon.fixation { background: rgba(46,204,113,0.2); color: var(--accent-green); }
+.menu-mode-title .icon.continuous { background: rgba(155,89,182,0.2); color: var(--accent-purple); }
+.menu-mode-desc {
+  font-size: 12.5px; line-height: 1.7; color: var(--text-secondary);
+  padding-left: 40px;
+}
+.menu-mode-desc strong { color: var(--text-primary); font-weight: 600; }
+.menu-divider { height: 1px; background: var(--border-color); margin: 8px 0 16px; }
+
+/* === SCREEN VIEWS === */
+.screen {
+  flex: 1; display: none; flex-direction: column;
+  overflow: hidden; position: relative;
+  min-height: 0;
+}
+.screen.active { display: flex; }
+
+/* === HOME SCREEN === */
+#home-screen {
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y !important;
+}
+#home-screen.active { display: block !important; }
+#home-screen * { touch-action: auto !important; }
+.home-content {
+  padding: 16px; max-width: 480px; margin: 0 auto; width: 100%;
+}
+.logo-area { text-align: center; padding: 16px 0 8px; }
+.logo-area img { width: 80px; height: 80px; }
+.logo-area h2 { font-size: 18px; margin-top: 8px; color: var(--text-primary); }
+.info-text {
+  background: var(--bg-card); border-radius: 12px;
+  padding: 14px; margin: 12px 0;
+  font-size: 13px; line-height: 1.7;
+  color: var(--text-secondary);
+  border-left: 3px solid var(--accent-blue);
+}
+.mode-grid { display: flex; flex-direction: column; gap: 10px; padding: 8px 0; }
+.mode-card {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: 12px; padding: 16px;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.mode-card:active { transform: scale(0.98); background: var(--bg-primary); }
+.mode-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.mode-icon.pursuit { background: rgba(74,144,217,0.2); color: var(--accent-blue); }
+.mode-icon.saccade { background: rgba(230,126,34,0.2); color: var(--accent-orange); }
+.mode-icon.fixation { background: rgba(46,204,113,0.2); color: var(--accent-green); }
+.mode-icon.continuous { background: rgba(155,89,182,0.2); color: var(--accent-purple); }
+.mode-icon.original { background: rgba(231,76,60,0.2); color: #e74c3c; }
+.mode-info h3 { font-size: 15px; margin-bottom: 3px; }
+.mode-info p { font-size: 12px; color: var(--text-secondary); }
+
+/* Original training presets */
+.original-section { margin-top: 16px; }
+.original-section h3 { font-size: 15px; margin: 0 0 8px; color: var(--text-secondary); }
+.original-card {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-secondary); border: 1px solid var(--border-color);
+  border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
+  cursor: pointer; transition: transform 0.1s;
+}
+.original-card:active { transform: scale(0.98); }
+.original-card-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+  background: rgba(231,76,60,0.15); color: #e74c3c;
+}
+.original-card-info { flex: 1; min-width: 0; }
+.original-card-info .name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.original-card-info .desc { font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.original-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.original-card-actions button {
+  background: none; border: 1px solid var(--border-color); border-radius: 8px;
+  padding: 6px 8px; font-size: 14px; cursor: pointer; color: var(--text-secondary);
+}
+.original-card-actions button:hover { background: var(--bg-primary); }
+.original-card-actions button.delete-btn { color: #e74c3c; border-color: rgba(231,76,60,0.3); }
+.no-originals { text-align: center; color: var(--text-secondary); font-size: 13px; padding: 16px; }
+
+/* === SETTINGS SCREEN === */
+#settings-screen {
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y !important;
+}
+#settings-screen.active { display: block !important; }
+#settings-screen * { touch-action: auto !important; }
+.settings-content {
+  padding: 16px; max-width: 480px; margin: 0 auto; width: 100%;
+  padding-bottom: 40px;
+}
+.setting-group {
+  background: var(--bg-card); border-radius: 12px;
+  padding: 16px; margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+}
+.setting-group h3 {
+  font-size: 14px; color: var(--accent-blue);
+  margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+.setting-row {
+  display: flex; flex-direction: column; margin-bottom: 12px;
+}
+.setting-row label {
+  font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;
+}
+.setting-row select, .setting-row input[type="number"] {
+  width: 100%; padding: 10px 12px;
+  background: var(--bg-primary); border: 1px solid var(--border-color);
+  border-radius: 8px; color: var(--text-primary);
+  font-size: 15px;
+}
+.option-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.option-btn {
+  padding: 10px 8px; background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 10px; color: var(--text-primary);
+  font-size: 13px; cursor: pointer;
+  text-align: center; transition: all 0.2s;
+}
+.option-btn.selected {
+  border-color: var(--accent-blue);
+  background: rgba(74,144,217,0.15);
+  color: var(--accent-blue);
+}
+.option-btn:active { transform: scale(0.96); }
+.start-btn {
+  width: 100%; padding: 14px;
+  background: var(--accent-blue);
+  border: none; border-radius: 12px;
+  color: white; font-size: 16px; font-weight: 600;
+  cursor: pointer; margin-top: 8px;
+  transition: all 0.2s;
+}
+.start-btn:active { transform: scale(0.98); opacity: 0.9; }
+.checkbox-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+}
+.checkbox-row input[type="checkbox"] {
+  width: 20px; height: 20px; accent-color: var(--accent-blue);
+}
+/* Speed slider */
+.speed-slider-wrap {
+  padding: 4px 0;
+}
+.speed-slider-labels {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+.speed-slider-value {
+  text-align: center; font-size: 20px; font-weight: 700;
+  color: var(--accent-blue); margin-bottom: 8px;
+}
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 6px;
+  background: var(--border-color);
+  border-radius: 3px; outline: none;
+  margin: 8px 0;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 28px; height: 28px;
+  background: var(--accent-blue);
+  border-radius: 50%; cursor: pointer;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 28px; height: 28px;
+  background: var(--accent-blue);
+  border-radius: 50%; cursor: pointer;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+/* Background color picker */
+.bg-color-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+}
+.bg-color-btn {
+  height: 48px; border-radius: 10px; cursor: pointer;
+  border: 3px solid var(--border-color);
+  transition: all 0.2s; position: relative;
+}
+.bg-color-btn.selected { border-color: var(--accent-blue); box-shadow: 0 0 0 2px var(--accent-blue); }
+.bg-color-btn::after {
+  content: attr(data-label);
+  position: absolute; bottom: -18px; left: 0; right: 0;
+  text-align: center; font-size: 10px; color: var(--text-secondary);
+}
+
+/* === TRAINING CANVAS === */
+#training-screen { background: #ffffff; }
+#training-canvas {
+  width: 100%; height: 100%;
+  display: block; touch-action: none;
+}
+.training-hud {
+  position: absolute; top: 8px; left: 0; right: 0;
+  display: flex; justify-content: space-between;
+  padding: 0 16px; z-index: 10;
+  pointer-events: none;
+}
+.hud-item {
+  background: rgba(0,0,0,0.06); padding: 4px 10px;
+  border-radius: 20px; font-size: 12px;
+  color: var(--text-secondary);
+}
+.pause-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(255,255,255,0.95);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 20;
+}
+.pause-overlay.active { display: flex; }
+.pause-overlay h2 { font-size: 24px; margin-bottom: 24px; color: var(--text-primary); }
+.pause-btn {
+  padding: 12px 32px; margin: 6px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px; background: #ffffff;
+  color: var(--text-primary); font-size: 16px;
+  cursor: pointer; min-width: 180px;
+  text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.pause-btn:active { background: var(--bg-primary); }
+.pause-btn.resume { border-color: var(--accent-green); color: var(--accent-green); }
+.pause-btn.quit { border-color: var(--accent-red); color: var(--accent-red); }
+.training-pause-btn {
+  position: absolute; top: 8px; right: 16px;
+  z-index: 15; width: 40px; height: 40px;
+  background: rgba(0,0,0,0.08); border: none;
+  border-radius: 50%; color: var(--text-primary);
+  font-size: 18px; cursor: pointer;
+  pointer-events: auto;
+}
+
+/* === RESULTS SCREEN === */
+#results-screen {
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y !important;
+}
+#results-screen.active { display: block !important; }
+#results-screen * { touch-action: auto !important; }
+.results-content {
+  padding: 24px 16px; max-width: 480px;
+  margin: 0 auto; width: 100%;
+  text-align: center;
+  padding-bottom: 100px;
+}
+.results-content h2 { font-size: 22px; margin-bottom: 20px; color: var(--accent-green); }
+.result-card {
+  background: var(--bg-card); border-radius: 12px;
+  padding: 20px; margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+}
+.result-value {
+  font-size: 32px; font-weight: 700;
+  color: var(--accent-blue); margin: 8px 0;
+}
+.result-label { font-size: 13px; color: var(--text-secondary); }
+.number-input-area {
+  margin: 20px 0; padding: 20px;
+  background: var(--bg-card); border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+.number-input-area label {
+  display: block; font-size: 15px; margin-bottom: 10px;
+}
+.number-input-area input {
+  width: 120px; padding: 12px; text-align: center;
+  background: var(--bg-primary); border: 2px solid var(--border-color);
+  border-radius: 10px; color: var(--text-primary);
+  font-size: 24px; font-weight: 700;
+}
+.number-result {
+  margin-top: 16px; padding: 16px;
+  border-radius: 10px; font-size: 18px; font-weight: 600;
+}
+.number-result.correct { background: rgba(46,204,113,0.2); color: var(--accent-green); }
+.number-result.incorrect { background: rgba(231,76,60,0.2); color: var(--accent-red); }
+
+/* === CONTINUOUS SETTINGS === */
+.level-cards { display: flex; flex-direction: column; gap: 10px; }
+.level-card {
+  background: var(--bg-primary); border: 2px solid var(--border-color);
+  border-radius: 12px; padding: 16px; cursor: pointer;
+  transition: all 0.2s;
+}
+.level-card.selected { border-color: var(--accent-purple); background: rgba(155,89,182,0.1); }
+.level-card h4 { font-size: 15px; margin-bottom: 4px; }
+.level-card p { font-size: 12px; color: var(--text-secondary); }
+
+/* === FOOTER === */
+.footer {
+  text-align: center; padding: 8px;
+  font-size: 10px; color: var(--text-secondary);
+  background: var(--bg-primary);
+  flex-shrink: 0;
+}
+
+/* === IOS INSTALL BANNER === */
+.install-banner {
+  display: none; position: fixed;
+  bottom: calc(16px + var(--safe-bottom));
+  left: 16px; right: 16px;
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: 14px; padding: 14px 16px;
+  z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+.install-banner.show { display: block; }
+.install-banner p { font-size: 13px; line-height: 1.6; color: var(--text-primary); }
+.install-banner .close-install {
+  position: absolute; top: 8px; right: 12px;
+  background: none; border: none; color: var(--text-secondary);
+  font-size: 20px; cursor: pointer;
+}
+
+/* === COUNTDOWN === */
+.countdown-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(255,255,255,0.95);
+  display: none; align-items: center; justify-content: center;
+  z-index: 25; flex-direction: column;
+}
+.countdown-overlay.active { display: flex; }
+.countdown-number {
+  font-size: 80px; font-weight: 700;
+  color: var(--accent-blue);
+  animation: countPulse 0.5s ease;
+}
+.countdown-mode {
+  font-size: 16px; color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+@keyframes countPulse {
+  0% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <img src="FNT512.png" alt="FNT Logo">
+  <div class="splash-title">Functional Neuro Training</div>
+  <div class="splash-app-name">Eye Movement Training</div>
+  <div class="splash-copyright">© 2025 Functional Neuro Training</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;">
+
+  <!-- HEADER -->
+  <div class="header" id="main-header">
+    <button class="menu-btn back-btn" id="backBtn" style="visibility:hidden;" onclick="goBack()">←</button>
+    <h1 id="headerTitle">Eye Movement Training</h1>
+    <button class="menu-btn" id="hamburgerBtn" onclick="toggleSideMenu()">☰</button>
+  </div>
+
+  <!-- SIDE MENU OVERLAY -->
+  <div class="menu-overlay" id="menuOverlay" onclick="closeSideMenu()"></div>
+  <div class="side-menu" id="sideMenu">
+    <div class="side-menu-header">
+      <h2>📖 Guide / ガイド</h2>
+      <button class="side-menu-close" onclick="closeSideMenu()">✕</button>
+    </div>
+    <div class="side-menu-body">
+
+      <div class="menu-mode-section">
+        <div class="menu-mode-title"><span class="icon pursuit">⟿</span>Smooth Pursuit / スムースパースー</div>
+        <div class="menu-mode-desc">
+          動くターゲットを滑らかに目で追うトレーニングです。<br>
+          <strong>脳領域:</strong> 後頭-頭頂-前頭の滑動性眼球運動回路、MT/MST野（視覚運動処理）、小脳片葉（運動微調整）<br>
+          <strong>方向:</strong> 水平・垂直・対角線・ランダム・一方向モード<br>
+          <strong>ランダムモード:</strong> 壁での反射に加え、突然の方向転換・カーブ・速度変化が発生。予測不能な動きで追従能力を鍛えます。<br>
+          <strong>一方向モード:</strong> ターゲットが一方向にのみ移動し、端に到達すると反対側から再出現します。スムースパースーで一方向に追従し、端に達したらサッカードで反対側に素早く視線を戻す、というパースーとサッカードの交互運動を自然に訓練できます。8方向（上下左右＋斜め4方向）から選択可能。<br>
+          <strong>効果:</strong> 動体視力の向上、視覚-運動協応の強化、注意持続力の改善
+        </div>
+      </div>
+
+      <div class="menu-divider"></div>
+
+      <div class="menu-mode-section">
+        <div class="menu-mode-title"><span class="icon saccade">⇄</span>Saccade / サッカード</div>
+        <div class="menu-mode-desc">
+          2つのターゲット間を素早く視線移動するトレーニングです。<br>
+          <strong>脳領域:</strong> 前頭眼野(FEF)、上丘（サッカード生成）、頭頂間溝（空間注意）<br>
+          <strong>方向:</strong> 水平・垂直・対角線・ランダム（画面上のランダム位置に出現）<br>
+          <strong>スピード:</strong> ターゲット出現間隔を調整。速いほど反応速度が鍛えられます。<br>
+          <strong>効果:</strong> 素早い視線移動の正確性向上、読書速度の改善、視覚探索能力の強化
+        </div>
+      </div>
+
+      <div class="menu-divider"></div>
+
+      <div class="menu-mode-section">
+        <div class="menu-mode-title"><span class="icon fixation">◎</span>Gaze Fixation / 注視</div>
+        <div class="menu-mode-desc">
+          9箇所（8方向＋中央）を順番に注視するトレーニングです。1周で自動終了します。<br>
+          <strong>脳領域:</strong> 小脳片葉（注視安定化）、前庭神経核、橋の傍正中網様体（注視保持）<br>
+          <strong>Troxlerモード:</strong> 薄いピンクの点が回転消失する効果で、周辺視野の知覚適応と注視安定性をテストします。<br>
+          <strong>効果:</strong> 注視安定性の向上、前庭動眼反射の強化、視覚的注意の集中力改善
+        </div>
+      </div>
+
+      <div class="menu-divider"></div>
+
+      <div class="menu-mode-section">
+        <div class="menu-mode-title"><span class="icon continuous">▶▶</span>Continuous / 連続トレーニング</div>
+        <div class="menu-mode-desc">
+          全モードを連続で実行します。難易度レベルに応じてスピード・サイズ・時間が自動設定されます。<br>
+          <strong>構成:</strong> パースー4方向 → サッカード5方向 → 注視 の計10セッション<br>
+          <strong>レベル:</strong> 初級（ゆっくり・大きめ）〜 達人（高速・小さめ）<br>
+          <strong>効果:</strong> 総合的な眼球運動能力の評価・向上、持久力のトレーニング
+        </div>
+      </div>
+
+      <div class="menu-divider"></div>
+
+      <div class="menu-mode-section">
+        <div class="menu-mode-title">🎯 ターゲットの種類</div>
+        <div class="menu-mode-desc">
+          <strong>● 円:</strong> 基本ターゲット<br>
+          <strong>✚ 十字:</strong> 注視点として使用<br>
+          <strong>○ リング:</strong> 周辺視野を意識しやすい<br>
+          <strong>🔢 数字:</strong> 表示される数字の合計を記憶。眼球運動＋ワーキングメモリの二重課題。<br>
+          <strong>あ ひらがな:</strong> 表示されるひらがなから始まるお題の単語をイメージ。眼球運動＋言語処理＋イメージ記憶の三重課題。5秒ごとに変化。ひらがなを見て単語を想起し、その対象を頭の中で視覚化することで、海馬（記憶形成）・側頭葉内側面（意味記憶）・後頭側頭領域（メンタルイメージ生成）が同時に活性化されます。これにより、眼球運動制御に加え、言語的想起力と視覚的イメージ記憶力を統合的に鍛えることができます。<br>
+          <strong>🌀 Troxler:</strong> 注視モード専用。周辺視野の消失現象で注視安定性をテスト。
+        </div>
+      </div>
+
+      <div class="menu-divider"></div>
+
+      <div class="menu-mode-section">
+        <div class="menu-mode-title">🎨 背景オプション</div>
+        <div class="menu-mode-desc">
+          <strong>色:</strong> 白・赤・青・緑。色付き背景ではターゲットが自動で白か黒に切替わります。<br>
+          <strong>格子:</strong> ランダムに点滅する格子パターン。視覚的ノイズの中での追従を鍛えます。<br>
+          <strong>範囲:</strong> 全面・半面・四分割。片側だけ色をつけて視野の非対称刺激が可能。
+        </div>
+      </div>
+
+      <div class="menu-divider"></div>
+
+      <div class="menu-mode-section">
+        <div class="menu-mode-title">⭐ オリジナルトレーニング</div>
+        <div class="menu-mode-desc">
+          設定画面の「⭐ Save as Original」で現在の設定を名前をつけて保存できます。トップページからワンタップで起動可能。端末のローカルストレージに保存されます。
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="home-screen">
+    <div class="home-content">
+      <div class="logo-area">
+        <img src="FNT512-transparent.png" alt="FNT Logo">
+        <h2>Eye Movement Training</h2>
+      </div>
+      <div class="info-text">
+        <strong>🧠 Neuroscience / 神経科学的背景</strong><br><br>
+        眼球運動トレーニングは、前頭眼野(FEF)、補足眼野、上丘、小脳虫部などの脳領域を刺激します。
+        スムースパースーは後頭-頭頂-前頭の滑動性眼球運動回路を、サッカードは前頭眼野と上丘のサッカード生成回路を、
+        注視は小脳片葉と前庭神経核の注視安定化機構をそれぞれ強化します。<br><br>
+        Eye movement training stimulates the frontal eye fields (FEF), supplementary eye fields, superior colliculus,
+        and cerebellar vermis. These exercises strengthen pursuit, saccade, and gaze stabilization circuits.
+      </div>
+
+      <h3 style="font-size:15px; margin: 12px 0 8px; color:var(--text-secondary);">Training Mode / トレーニングモード</h3>
+      <div class="mode-grid">
+        <div class="mode-card" onclick="selectMode('pursuit')">
+          <div class="mode-icon pursuit">⟿</div>
+          <div class="mode-info">
+            <h3>Smooth Pursuit / スムースパースー</h3>
+            <p>Follow the moving target smoothly with your eyes / 動くターゲットを目で追う</p>
+          </div>
+        </div>
+        <div class="mode-card" onclick="selectMode('saccade')">
+          <div class="mode-icon saccade">⇄</div>
+          <div class="mode-info">
+            <h3>Saccade / サッカード</h3>
+            <p>Quickly shift gaze between targets / ターゲット間を素早く視線移動</p>
+          </div>
+        </div>
+        <div class="mode-card" onclick="selectMode('fixation')">
+          <div class="mode-icon fixation">◎</div>
+          <div class="mode-info">
+            <h3>Gaze Fixation / 注視</h3>
+            <p>Hold gaze on target at each position / 各位置のターゲットに注視</p>
+          </div>
+        </div>
+        <div class="mode-card" onclick="selectMode('continuous')">
+          <div class="mode-icon continuous">▶▶</div>
+          <div class="mode-info">
+            <h3>Continuous Training / 連続トレーニング</h3>
+            <p>All modes in sequence with preset difficulty / 全モード連続実行</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="original-section">
+        <h3>⭐ Original Training / オリジナルトレーニング</h3>
+        <div id="originalList"></div>
+      </div>
+    </div>
+    <div class="footer">© 2025 Functional Neuro Training</div>
+  </div>
+
+  <!-- SETTINGS SCREEN -->
+  <div class="screen" id="settings-screen">
+    <div class="settings-content" id="settingsContent">
+      <!-- Dynamically populated -->
+    </div>
+    <div class="footer">© 2025 Functional Neuro Training</div>
+  </div>
+
+  <!-- TRAINING SCREEN -->
+  <div class="screen" id="training-screen">
+    <div class="training-hud">
+      <div class="hud-item" id="hudMode">Mode</div>
+      <div class="hud-item" id="hudTime">0:00</div>
+    </div>
+    <button class="training-pause-btn" onclick="togglePause()">⏸</button>
+    <canvas id="training-canvas"></canvas>
+    <div class="countdown-overlay" id="countdownOverlay">
+      <div class="countdown-mode" id="countdownMode"></div>
+      <div class="countdown-number" id="countdownNumber">3</div>
+    </div>
+    <div class="pause-overlay" id="pauseOverlay">
+      <h2>⏸ Paused</h2>
+      <button class="pause-btn resume" onclick="togglePause()">▶ Resume / 再開</button>
+      <button class="pause-btn" onclick="goToSettings()" style="border-color:var(--accent-purple);color:var(--accent-purple);">⚙️ Change Settings / 設定変更</button>
+      <button class="pause-btn quit" onclick="quitTraining()">✕ Quit / 終了</button>
+    </div>
+  </div>
+
+  <!-- SAVE ORIGINAL DIALOG -->
+  <div class="pause-overlay" id="saveOriginalDialog" style="z-index:200;position:fixed;">
+    <h2>⭐ Save Original</h2>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+      現在の設定に名前をつけて保存<br>Name this training preset
+    </p>
+    <input type="text" id="originalNameInput" placeholder="例: 右サッカード速め / Fast right saccade"
+           style="width:100%;max-width:300px;padding:10px 14px;border:1px solid var(--border-color);border-radius:8px;font-size:15px;margin-bottom:12px;box-sizing:border-box;">
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button class="pause-btn resume" onclick="confirmSaveOriginal()" style="flex:1;max-width:140px;">💾 Save / 保存</button>
+      <button class="pause-btn quit" onclick="closeSaveOriginalDialog()" style="flex:1;max-width:140px;">Cancel / キャンセル</button>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div class="screen" id="results-screen">
+    <div class="results-content" id="resultsContent">
+      <!-- Dynamically populated -->
+    </div>
+    <div class="footer">© 2025 Functional Neuro Training</div>
+  </div>
+</div>
+
+<!-- INSTALL BANNER -->
+<div class="install-banner" id="installBanner">
+  <button class="close-install" onclick="closeInstall()">×</button>
+  <p>📲 <strong>Install this app:</strong><br>
+  Tap <strong>Share</strong> → <strong>"Add to Home Screen"</strong><br>
+  to use offline / オフラインで使用可能</p>
+</div>
+
+<script>
+// ============================
+// GLOBAL STATE
+// ============================
+const state = {
+  currentScreen: 'home',
+  currentMode: null,
+  settings: {
+    direction: 'horizontal',
+    speed: 5,
+    targetType: 'circle',
+    targetSize: 'medium',
+    targetColor: '#4a90d9',
+    bgColor: '#ffffff',
+    bgArea: 'full',
+    bgPattern: 'solid',
+    duration: 30,
+    oneWay: false,
+    fixationPerPos: 3,
+    continuousLevel: 'beginner'
+  },
+  training: {
+    active: false,
+    paused: false,
+    animFrame: null,
+    startTime: 0,
+    elapsed: 0,
+    pausedTime: 0,
+    target: { x: 0, y: 0 },
+    velocity: { x: 0, y: 0 },
+    saccadeTargets: [],
+    saccadeIndex: 0,
+    saccadeTimer: 0,
+    fixationPositions: [],
+    fixationIndex: 0,
+    fixationTimer: 0,
+    numberSum: 0,
+    currentNumber: 0,
+    numberChangeTimer: 0,
+    numbers: [],
+    continuousQueue: [],
+    continuousIndex: 0
+  }
+};
+
+// ============================
+// SPEED CONFIGS (slider 1-10)
+// ============================
+function getSpeedValue(mode, sliderVal) {
+  const v = parseInt(sliderVal);
+  if (mode === 'pursuit') {
+    // 1=0.5px/frame → 10=22px/frame (10 is extremely fast)
+    return 0.5 + (v - 1) * 2.39;
+  } else if (mode === 'saccade') {
+    // 1=3000ms → 10=80ms interval
+    return Math.round(3000 - (v - 1) * 324);
+  } else if (mode === 'fixation') {
+    // 1=4000ms → 10=200ms interval
+    return Math.round(4000 - (v - 1) * 422);
+  }
+  return v;
+}
+
+const SPEED_LABELS = {
+  1: '超遅 / Very Slow',
+  2: '遅い / Slow',
+  3: 'やや遅 / Slow+',
+  4: 'ふつう / Normal',
+  5: '中速 / Medium',
+  6: 'やや速 / Fast-',
+  7: '速い / Fast',
+  8: 'かなり速 / Very Fast',
+  9: '超速 / Ultra Fast',
+  10: '最速 / MAX SPEED 🔥'
+};
+
+const SIZES = { small: 10, medium: 18, large: 28, xlarge: 42 };
+
+// Hiragana topics: each topic has only chars that have valid answers
+const HIRAGANA_TOPICS = [
+  {
+    prompt: 'ひらがなから始まる食べ物をイメージしてください',
+    examples: {あ:'あんぱん',い:'いくら',う:'うどん',え:'えびフライ',お:'おにぎり',か:'カレー',き:'きつねうどん',く:'クッキー',け:'ケーキ',こ:'コロッケ',さ:'サラダ',し:'しょうゆ',す:'すし',せ:'せんべい',そ:'そば',た:'たこ焼き',ち:'チーズ',つ:'つけもの',て:'天ぷら',と:'とうふ',な:'なべ',に:'にくまん',ぬ:'ぬか漬け',ね:'ねぎ焼き',の:'のりまき',は:'ハンバーグ',ひ:'ひやしうどん',ふ:'フライドポテト',ほ:'ほっけ',ま:'まんじゅう',み:'味噌汁',む:'蒸しパン',め:'メンチカツ',も:'もち',や:'焼きそば',ゆ:'ゆでたまご',よ:'ようかん',ら:'ラーメン',り:'リゾット',れ:'レモン',わ:'わさび'}
+  },
+  {
+    prompt: 'ひらがなから始まる動物をイメージしてください',
+    examples: {あ:'アリ',い:'イルカ',う:'ウサギ',え:'エビ',お:'オオカミ',か:'カメ',き:'キリン',く:'クマ',こ:'コアラ',さ:'サル',し:'シカ',す:'スズメ',せ:'セミ',た:'タカ',ち:'チーター',つ:'ツル',て:'テントウムシ',と:'トラ',な:'ナマケモノ',に:'ニワトリ',ね:'ネコ',は:'ハト',ひ:'ヒツジ',ふ:'フクロウ',へ:'ヘビ',ほ:'ホタル',ま:'マグロ',み:'ミミズ',む:'ムカデ',め:'メダカ',も:'モグラ',や:'ヤギ',ら:'ラクダ',り:'リス',ろ:'ロバ',わ:'ワニ'}
+  },
+  {
+    prompt: 'ひらがなから始まる野菜をイメージしてください',
+    examples: {あ:'アスパラガス',い:'いんげん',え:'えだまめ',お:'オクラ',か:'かぼちゃ',き:'きゅうり',こ:'ごぼう',さ:'さつまいも',し:'しいたけ',せ:'セロリ',た:'たまねぎ',と:'トマト',な:'なす',に:'にんじん',ね:'ねぎ',の:'のざわな',は:'はくさい',ほ:'ほうれんそう',ま:'まめ',み:'みつば',も:'もやし',や:'やまいも',よ:'よもぎ',ら:'らっきょう',り:'リーフレタス',れ:'レンコン',わ:'わさび'}
+  },
+  {
+    prompt: 'ひらがなから始まる果物をイメージしてください',
+    examples: {あ:'あんず',い:'いちご',う:'うめ',か:'かき',き:'キウイ',く:'クランベリー',さ:'サクランボ',す:'すいか',な:'なし',び:'びわ',ぶ:'ぶどう',み:'みかん',も:'もも',ゆ:'ゆず',ら:'ライチ',り:'りんご'}
+  },
+  {
+    prompt: 'ひらがなから始まる魚をイメージしてください',
+    examples: {あ:'アジ',い:'イワシ',う:'ウナギ',え:'エイ',お:'おこぜ',か:'カツオ',き:'キス',こ:'コイ',さ:'サケ',し:'シラス',す:'スズキ',た:'タイ',ち:'ちりめんじゃこ',て:'てっちり（フグ）',と:'トビウオ',な:'ナマズ',に:'ニシン',は:'ハマチ',ひ:'ヒラメ',ふ:'フグ',ほ:'ホッケ',ま:'マグロ',め:'メバル'}
+  },
+  {
+    prompt: 'ひらがなから始まる花をイメージしてください',
+    examples: {あ:'アサガオ',い:'いちりんそう',う:'ウメ',え:'エーデルワイス',お:'おだまき',か:'カーネーション',き:'キク',く:'クロッカス',け:'ケイトウ',こ:'コスモス',さ:'サクラ',し:'シクラメン',す:'スイセン',せ:'セージ',そ:'ソメイヨシノ',た:'タンポポ',ち:'チューリップ',つ:'ツバキ',て:'テッセン',な:'ナノハナ',に:'ニチニチソウ',の:'ノギク',は:'ハナミズキ',ひ:'ヒマワリ',ふ:'フジ',ほ:'ホオズキ',ま:'マーガレット',み:'ミモザ',む:'ムスカリ',も:'モクレン',や:'ヤマブキ',ゆ:'ユリ',よ:'ヨモギ',ら:'ラベンダー',り:'リンドウ',れ:'レンゲ'}
+  },
+  {
+    prompt: 'ひらがなから始まる都道府県をイメージしてください',
+    examples: {あ:'愛知',い:'茨城',え:'愛媛',お:'大阪',か:'鹿児島',き:'京都',く:'熊本',こ:'高知',さ:'埼玉',し:'静岡',と:'東京',な:'奈良',に:'新潟',ひ:'兵庫',ふ:'福岡',ほ:'北海道',み:'宮城',や:'山口',わ:'和歌山'}
+  },
+  {
+    prompt: 'ひらがなから始まる乗り物をイメージしてください',
+    examples: {う:'うま車',お:'オートバイ',か:'カヌー',き:'気球',く:'車',こ:'ゴーカート',さ:'三輪車',し:'新幹線',す:'スクーター',せ:'潜水艦',そ:'そり',た:'タクシー',ち:'地下鉄',て:'電車',と:'トラック',な:'ナビ船',に:'人力車',は:'バス',ひ:'飛行機',ふ:'フェリー',ほ:'帆船',ま:'馬車',も:'モノレール',よ:'ヨット',ろ:'ロケット'}
+  },
+  {
+    prompt: 'ひらがなから始まるスポーツをイメージしてください',
+    examples: {あ:'アーチェリー',い:'一輪車競技',う:'ウエイトリフティング',え:'エアロビクス',お:'オリエンテーリング',か:'空手',き:'競泳',く:'クリケット',け:'剣道',こ:'ゴルフ',さ:'サッカー',し:'柔道',す:'相撲',せ:'セーリング',そ:'ソフトボール',た:'卓球',ち:'チアリーディング',て:'テニス',と:'飛び込み',な:'なわとび',は:'バスケ',ひ:'ビリヤード',ふ:'フェンシング',ほ:'ホッケー',ま:'マラソン',や:'野球',ら:'ラグビー',り:'陸上'}
+  }
+];
+
+function randomHiragana() {
+  const topic = state.training._hiraganaTopic;
+  const keys = topic ? Object.keys(topic.examples) : Object.keys(HIRAGANA_TOPICS[0].examples);
+  return keys[Math.floor(Math.random() * keys.length)];
+}
+
+// ============================
+// CONTINUOUS PRESETS
+// ============================
+const CONTINUOUS_PRESETS = {
+  beginner: {
+    label: '初級 / Beginner',
+    desc: 'Slow speed, large target, 15s each / 遅い速度、大きいターゲット、各15秒',
+    speed: 2, size: 'large', duration: 15, targetType: 'circle'
+  },
+  intermediate: {
+    label: '中級 / Intermediate',
+    desc: 'Medium speed, medium target, 20s each / 中速、中ターゲット、各20秒',
+    speed: 5, size: 'medium', duration: 20, targetType: 'circle'
+  },
+  advanced: {
+    label: '上級 / Advanced',
+    desc: 'Fast speed, small target, 25s each / 速い速度、小ターゲット、各25秒',
+    speed: 7, size: 'small', duration: 25, targetType: 'number'
+  },
+  expert: {
+    label: '最上級 / Expert',
+    desc: 'Max speed, small target + numbers, 30s each / 最速、小+数字、各30秒',
+    speed: 10, size: 'small', duration: 30, targetType: 'number'
+  }
+};
+
+// ============================
+// SPLASH & INIT
+// ============================
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hidden');
+    document.getElementById('app').style.display = 'flex';
+    setTimeout(() => document.getElementById('splash').remove(), 600);
+  }, 1800);
+  registerSW();
+  checkInstall();
+  initAudio();
+  renderOriginals();
+});
+
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+}
+
+function checkInstall() {
+  const isStandalone = window.matchMedia('(display-mode: fullscreen)').matches
+    || window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS && !isStandalone) {
+    setTimeout(() => document.getElementById('installBanner').classList.add('show'), 3000);
+  }
+}
+function closeInstall() { document.getElementById('installBanner').classList.remove('show'); }
+
+// Audio context for iOS
+let audioCtx;
+function initAudio() {
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    document.addEventListener('touchstart', resumeAudio, { once: true });
+    document.addEventListener('click', resumeAudio, { once: true });
+  } catch(e) {}
+}
+function resumeAudio() {
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0.001;
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.01);
+  }
+}
+function playBeep(freq = 600, dur = 0.1) {
+  if (!audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const comp = audioCtx.createDynamicsCompressor();
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.connect(gain); gain.connect(comp); comp.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + dur);
+  } catch(e) {}
+}
+
+// ============================
+// NAVIGATION
+// ============================
+function showScreen(id) {
+  closeSideMenu();
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  state.currentScreen = id;
+  const backBtn = document.getElementById('backBtn');
+  const header = document.getElementById('main-header');
+  if (id === 'home-screen') {
+    backBtn.style.visibility = 'hidden';
+    header.style.display = 'flex';
+    document.getElementById('headerTitle').textContent = 'Eye Movement Training';
+  } else if (id === 'training-screen') {
+    header.style.display = 'none';
+  } else if (id === 'settings-screen') {
+    backBtn.style.visibility = 'visible';
+    header.style.display = 'flex';
+  } else if (id === 'results-screen') {
+    backBtn.style.visibility = 'hidden';
+    header.style.display = 'flex';
+    document.getElementById('headerTitle').textContent = 'Results / 結果';
+  }
+}
+
+function goBack() {
+  if (state.currentScreen === 'settings-screen') {
+    showScreen('home-screen');
+  }
+}
+
+// ============================
+// SIDE MENU
+// ============================
+function toggleSideMenu() {
+  const menu = document.getElementById('sideMenu');
+  const overlay = document.getElementById('menuOverlay');
+  const isOpen = menu.classList.contains('open');
+  if (isOpen) {
+    closeSideMenu();
+  } else {
+    menu.classList.add('open');
+    overlay.classList.add('open');
+  }
+}
+function closeSideMenu() {
+  document.getElementById('sideMenu').classList.remove('open');
+  document.getElementById('menuOverlay').classList.remove('open');
+}
+
+// ============================
+// ORIGINAL TRAINING PRESETS
+// ============================
+const ORIGINAL_STORAGE_KEY = 'fnt-eye-movement-originals';
+
+function getOriginals() {
+  try {
+    return JSON.parse(localStorage.getItem(ORIGINAL_STORAGE_KEY)) || [];
+  } catch(e) { return []; }
+}
+
+function saveOriginals(list) {
+  localStorage.setItem(ORIGINAL_STORAGE_KEY, JSON.stringify(list));
+}
+
+function renderOriginals() {
+  const container = document.getElementById('originalList');
+  if (!container) return;
+  const list = getOriginals();
+  if (list.length === 0) {
+    container.innerHTML = '<div class="no-originals">まだ保存されていません<br>設定画面から「⭐ Save as Original」で追加できます</div>';
+    return;
+  }
+
+  const modeLabels = {
+    pursuit: 'スムースパースー',
+    saccade: 'サッカード',
+    fixation: '注視'
+  };
+  const modeIcons = {
+    pursuit: '⟿', saccade: '⇄', fixation: '◎'
+  };
+
+  container.innerHTML = list.map((item, i) => {
+    const ml = modeLabels[item.mode] || item.mode;
+    const mi = modeIcons[item.mode] || '⭐';
+    const details = [];
+    if (item.settings.direction && item.mode !== 'fixation') details.push(item.settings.direction);
+    if (item.settings.speed && item.mode !== 'fixation') details.push('Spd:' + item.settings.speed);
+    details.push(item.settings.targetType);
+    details.push(item.settings.targetSize);
+    if (item.settings.bgColor !== '#ffffff') details.push('BG色');
+    if (item.mode === 'fixation') details.push(item.settings.fixationPerPos + 's/pos');
+    else details.push(item.settings.duration + 's');
+
+    return `
+      <div class="original-card" onclick="runOriginal(${i})">
+        <div class="original-card-icon">${mi}</div>
+        <div class="original-card-info">
+          <div class="name">${escapeHtml(item.name)}</div>
+          <div class="desc">${ml} · ${details.join(' · ')}</div>
+        </div>
+        <div class="original-card-actions" onclick="event.stopPropagation()">
+          <button onclick="editOriginalSettings(${i})" title="Edit settings">⚙️</button>
+          <button onclick="editOriginalName(${i})" title="Rename">✏️</button>
+          <button class="delete-btn" onclick="deleteOriginal(${i})" title="Delete">🗑</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function showSaveOriginalDialog() {
+  const dialog = document.getElementById('saveOriginalDialog');
+  dialog.classList.add('active');
+  const input = document.getElementById('originalNameInput');
+  // Pre-fill name if editing existing
+  if (state._editingOriginalIndex != null) {
+    const list = getOriginals();
+    const item = list[state._editingOriginalIndex];
+    input.value = item ? item.name : '';
+  } else {
+    input.value = '';
+  }
+  input.style.borderColor = '';
+  setTimeout(() => input.focus(), 100);
+}
+
+function closeSaveOriginalDialog() {
+  document.getElementById('saveOriginalDialog').classList.remove('active');
+  state._editingOriginalIndex = null;
+}
+
+function confirmSaveOriginal() {
+  const input = document.getElementById('originalNameInput');
+  const name = input.value.trim();
+  if (!name) {
+    input.style.borderColor = '#e74c3c';
+    input.placeholder = '名前を入力してください';
+    return;
+  }
+
+  const preset = {
+    name: name,
+    mode: state.currentMode,
+    settings: {
+      direction: state.settings.direction,
+      speed: state.settings.speed,
+      targetType: state.settings.targetType,
+      targetSize: state.settings.targetSize,
+      targetColor: state.settings.targetColor,
+      bgColor: state.settings.bgColor,
+      bgArea: state.settings.bgArea,
+      bgPattern: state.settings.bgPattern,
+      oneWay: state.settings.oneWay,
+      duration: state.settings.duration,
+      fixationPerPos: state.settings.fixationPerPos
+    },
+    createdAt: Date.now()
+  };
+
+  const list = getOriginals();
+
+  // If editing existing, overwrite
+  if (state._editingOriginalIndex != null && list[state._editingOriginalIndex]) {
+    list[state._editingOriginalIndex] = preset;
+    state._editingOriginalIndex = null;
+  } else {
+    list.push(preset);
+  }
+  saveOriginals(list);
+  closeSaveOriginalDialog();
+
+  // Show confirmation
+  const btn = document.querySelector('.start-btn[onclick*="showSaveOriginalDialog"]');
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✅ Saved!';
+    btn.style.borderColor = 'var(--accent-green)';
+    btn.style.color = 'var(--accent-green)';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }, 1500);
+  }
+}
+
+function runOriginal(index) {
+  const list = getOriginals();
+  const item = list[index];
+  if (!item) return;
+
+  // Apply saved settings
+  state.currentMode = item.mode;
+  Object.assign(state.settings, item.settings);
+
+  // Go straight to training
+  startTraining();
+}
+
+function editOriginalName(index) {
+  const list = getOriginals();
+  const item = list[index];
+  if (!item) return;
+  const newName = prompt('新しい名前 / New name:', item.name);
+  if (newName && newName.trim()) {
+    list[index].name = newName.trim();
+    saveOriginals(list);
+    renderOriginals();
+  }
+}
+
+function editOriginalSettings(index) {
+  const list = getOriginals();
+  const item = list[index];
+  if (!item) return;
+  // Load saved settings
+  state.currentMode = item.mode;
+  Object.assign(state.settings, item.settings);
+  // Open settings with keepSettings=true
+  selectMode(item.mode, true);
+  // Store which original is being edited so save overwrites it
+  state._editingOriginalIndex = index;
+}
+
+function deleteOriginal(index) {
+  const list = getOriginals();
+  const item = list[index];
+  if (!item) return;
+  if (confirm(`「${item.name}」を削除しますか？\nDelete "${item.name}"?`)) {
+    list.splice(index, 1);
+    saveOriginals(list);
+    renderOriginals();
+  }
+}
+
+// Render originals when home screen shown
+(function() {
+  const origFn = showScreen;
+  showScreen = function(id) {
+    origFn(id);
+    if (id === 'home-screen') renderOriginals();
+  };
+})();
+
+// ============================
+// MODE SELECTION
+// ============================
+function selectMode(mode, keepSettings) {
+  state.currentMode = mode;
+  if (!keepSettings) state._editingOriginalIndex = null;
+  buildSettings(mode, keepSettings);
+  showScreen('settings-screen');
+  const titles = {
+    pursuit: 'Smooth Pursuit / スムースパースー',
+    saccade: 'Saccade / サッカード',
+    fixation: 'Gaze Fixation / 注視',
+    continuous: 'Continuous / 連続'
+  };
+  document.getElementById('headerTitle').textContent = titles[mode] || mode;
+}
+
+function buildSettings(mode, keepSettings) {
+  const c = document.getElementById('settingsContent');
+  let html = '';
+  const s = state.settings;
+
+  // Reset to defaults only when NOT keeping settings
+  if (!keepSettings) {
+    s.direction = 'horizontal';
+    s.speed = 5;
+    s.targetType = 'circle';
+    s.targetSize = 'medium';
+    s.bgColor = '#ffffff';
+    s.bgArea = 'full';
+    s.bgPattern = 'solid';
+    s.oneWay = false;
+    s.fixationPerPos = 3;
+    s.duration = 30;
+  }
+
+  // Helper: return 'selected' if match
+  const sel = (val, check) => val === check ? 'selected' : '';
+
+  if (mode === 'continuous') {
+    html = `
+      <div class="setting-group">
+        <h3>🎯 Difficulty Level / 難易度</h3>
+        <div class="level-cards">
+          ${Object.entries(CONTINUOUS_PRESETS).map(([key, p]) => `
+            <div class="level-card ${s.continuousLevel === key ? 'selected' : ''}"
+                 onclick="selectLevel('${key}')">
+              <h4>${p.label}</h4>
+              <p>${p.desc}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <button class="start-btn" onclick="startContinuous()">▶ Start Continuous Training / 開始</button>
+    `;
+  } else {
+    const isOW = s.oneWay && s.direction.startsWith('ow-');
+
+    // Direction options
+    let dirOptions = '';
+    if (mode === 'pursuit') {
+      const normalSel = !isOW;
+      dirOptions = `
+        <div id="normalDirSection" style="${isOW ? 'display:none' : ''}">
+          <div class="option-grid">
+            <div class="option-btn ${normalSel ? sel(s.direction,'horizontal') : ''}" onclick="selectDir('horizontal',this)">↔ Left-Right / 左右</div>
+            <div class="option-btn ${normalSel ? sel(s.direction,'vertical') : ''}" onclick="selectDir('vertical',this)">↕ Up-Down / 上下</div>
+            <div class="option-btn ${normalSel ? sel(s.direction,'diag-right') : ''}" onclick="selectDir('diag-right',this)">⤢ Right Diag / 右斜め</div>
+            <div class="option-btn ${normalSel ? sel(s.direction,'diag-left') : ''}" onclick="selectDir('diag-left',this)">⤡ Left Diag / 左斜め</div>
+            <div class="option-btn ${normalSel ? sel(s.direction,'random') : ''}" onclick="selectDir('random',this)">🔀 Random / ランダム</div>
+          </div>
+        </div>
+        <div class="checkbox-row" style="margin-top:12px;">
+          <input type="checkbox" id="oneWayCheck" ${isOW ? 'checked' : ''} onchange="toggleOneWay(this.checked)">
+          <label for="oneWayCheck" style="margin:0;color:var(--text-primary);font-size:14px;">
+            One-Way Mode / 一方向モード<br>
+            <span style="font-size:11px;color:var(--text-secondary)">Target wraps around / 端で反対側から出現</span>
+          </label>
+        </div>
+        <div id="oneWayDirSection" style="${isOW ? '' : 'display:none'};margin-top:10px;">
+          <label style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:block;">Direction / 進行方向</label>
+          <div class="option-grid">
+            <div class="option-btn ${sel(s.direction,'ow-right')}" onclick="selectDir('ow-right',this)">→ Right / 右</div>
+            <div class="option-btn ${sel(s.direction,'ow-left')}" onclick="selectDir('ow-left',this)">← Left / 左</div>
+            <div class="option-btn ${sel(s.direction,'ow-up')}" onclick="selectDir('ow-up',this)">↑ Up / 上</div>
+            <div class="option-btn ${sel(s.direction,'ow-down')}" onclick="selectDir('ow-down',this)">↓ Down / 下</div>
+            <div class="option-btn ${sel(s.direction,'ow-ru')}" onclick="selectDir('ow-ru',this)">↗ Upper R / 右上</div>
+            <div class="option-btn ${sel(s.direction,'ow-rd')}" onclick="selectDir('ow-rd',this)">↘ Lower R / 右下</div>
+            <div class="option-btn ${sel(s.direction,'ow-lu')}" onclick="selectDir('ow-lu',this)">↖ Upper L / 左上</div>
+            <div class="option-btn ${sel(s.direction,'ow-ld')}" onclick="selectDir('ow-ld',this)">↙ Lower L / 左下</div>
+          </div>
+        </div>
+      `;
+    } else if (mode === 'saccade') {
+      dirOptions = `
+        <div class="option-grid">
+          <div class="option-btn ${sel(s.direction,'horizontal')}" onclick="selectDir('horizontal',this)">↔ Left-Right / 左右</div>
+          <div class="option-btn ${sel(s.direction,'vertical')}" onclick="selectDir('vertical',this)">↕ Up-Down / 上下</div>
+          <div class="option-btn ${sel(s.direction,'diag-right')}" onclick="selectDir('diag-right',this)">⤢ Right Diag / 右斜め</div>
+          <div class="option-btn ${sel(s.direction,'diag-left')}" onclick="selectDir('diag-left',this)">⤡ Left Diag / 左斜め</div>
+          <div class="option-btn ${sel(s.direction,'random')}" onclick="selectDir('random',this)">🔀 Random / ランダム</div>
+        </div>
+      `;
+    }
+
+    const dirSection = (mode !== 'fixation') ? `
+      <div class="setting-group">
+        <h3>📐 Direction / 方向</h3>
+        ${dirOptions}
+      </div>
+    ` : '';
+
+    // Speed section (not for fixation), hide if random
+    const speedHidden = s.direction === 'random' ? 'display:none;' : '';
+    const speedSection = (mode !== 'fixation') ? `
+      <div class="setting-group" id="speedSection" style="${speedHidden}">
+        <h3>⚡ Speed / スピード</h3>
+        <div class="speed-slider-wrap">
+          <div class="speed-slider-value" id="speedLabel">${SPEED_LABELS[s.speed]}</div>
+          <input type="range" min="1" max="10" value="${s.speed}" id="speedSlider"
+                 oninput="onSpeedSlider(this.value)">
+          <div class="speed-slider-labels">
+            <span>遅 Slow</span><span>速 Fast</span>
+          </div>
+        </div>
+      </div>
+    ` : '';
+
+    // Fixation info
+    const fixationSection = (mode === 'fixation') ? `
+      <div class="setting-group">
+        <h3>👁 Fixation / 注視</h3>
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6;">
+          9箇所（8方向＋中央）を順番に注視し、1周したら自動終了します。<br>
+          Fixate on 9 positions (8 dirs + center) in sequence, ends after one cycle.
+        </p>
+      </div>
+    ` : '';
+
+    // Troxler (fixation only)
+    const troxlerOption = (mode === 'fixation') ?
+      `<div class="option-btn ${sel(s.targetType,'troxler')}" onclick="selectTargetType('troxler',this)">🌀 Troxler</div>` : '';
+
+    // Duration / per-position
+    const durationSection = (mode === 'fixation') ? `
+      <div class="setting-group">
+        <h3>⏳ Per Position / 各ポジション注視時間</h3>
+        <p style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;">
+          9箇所（8方向＋中央）×注視時間で自動終了
+        </p>
+        <div class="option-grid">
+          <div class="option-btn ${sel(s.fixationPerPos,2)}" onclick="selectFixationPerPos(2,this)">2s</div>
+          <div class="option-btn ${sel(s.fixationPerPos,3)}" onclick="selectFixationPerPos(3,this)">3s</div>
+          <div class="option-btn ${sel(s.fixationPerPos,5)}" onclick="selectFixationPerPos(5,this)">5s</div>
+          <div class="option-btn ${sel(s.fixationPerPos,8)}" onclick="selectFixationPerPos(8,this)">8s</div>
+        </div>
+      </div>
+    ` : `
+      <div class="setting-group">
+        <h3>⏱ Duration / 時間</h3>
+        <div class="option-grid">
+          <div class="option-btn ${sel(s.duration,15)}" onclick="selectDuration(15,this)">15s</div>
+          <div class="option-btn ${sel(s.duration,30)}" onclick="selectDuration(30,this)">30s</div>
+          <div class="option-btn ${sel(s.duration,45)}" onclick="selectDuration(45,this)">45s</div>
+          <div class="option-btn ${sel(s.duration,60)}" onclick="selectDuration(60,this)">60s</div>
+        </div>
+      </div>
+    `;
+
+    // Background color buttons
+    const bgColors = [
+      { val: '#ffffff', style: 'background:#ffffff;border-color:#ccc;', label: '白' },
+      { val: '#cc0000', style: 'background:#cc0000;', label: '赤' },
+      { val: '#0055cc', style: 'background:#0055cc;', label: '青' },
+      { val: '#008800', style: 'background:#008800;', label: '緑' }
+    ];
+    const bgColorBtns = bgColors.map(bc =>
+      `<div class="bg-color-btn ${sel(s.bgColor, bc.val)}" style="${bc.style}"
+           data-label="${bc.label}" onclick="selectBgColor('${bc.val}',this)"></div>`
+    ).join('');
+
+    html = `
+      ${dirSection}
+      ${speedSection}
+      ${fixationSection}
+      <div class="setting-group">
+        <h3>🎯 Target / ターゲット</h3>
+        <div class="setting-row">
+          <label>通常 / Standard</label>
+          <div class="option-grid target-type-grid">
+            <div class="option-btn ${sel(s.targetType,'circle')}" onclick="selectTargetType('circle',this)">● Circle / 円</div>
+            <div class="option-btn ${sel(s.targetType,'cross')}" onclick="selectTargetType('cross',this)">✚ Cross / 十字</div>
+            <div class="option-btn ${sel(s.targetType,'ring')}" onclick="selectTargetType('ring',this)">○ Ring / リング</div>
+          </div>
+        </div>
+        <div class="setting-row" style="margin-top:8px;">
+          <label>🧠 認知スタッキング / Cognitive Stacking</label>
+          <div class="option-grid target-type-grid">
+            <div class="option-btn ${sel(s.targetType,'number')}" onclick="selectTargetType('number',this)">🔢 Number / 数字</div>
+            <div class="option-btn ${sel(s.targetType,'hiragana')}" onclick="selectTargetType('hiragana',this)">あ Hiragana</div>
+            ${troxlerOption}
+          </div>
+        </div>
+        <div class="setting-row" style="margin-top:12px;">
+          <label>Size / 大きさ</label>
+          <div class="option-grid">
+            <div class="option-btn ${sel(s.targetSize,'small')}" onclick="selectTargetSize('small',this)">S 小</div>
+            <div class="option-btn ${sel(s.targetSize,'medium')}" onclick="selectTargetSize('medium',this)">M 中</div>
+            <div class="option-btn ${sel(s.targetSize,'large')}" onclick="selectTargetSize('large',this)">L 大</div>
+            <div class="option-btn ${sel(s.targetSize,'xlarge')}" onclick="selectTargetSize('xlarge',this)">XL 特大</div>
+          </div>
+        </div>
+      </div>
+      <div class="setting-group">
+        <h3>🎨 Background / 背景色</h3>
+        <p style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">
+          ※ 色付き背景では自動的に白ターゲット / White target on colored backgrounds
+        </p>
+        <div class="bg-color-grid">${bgColorBtns}</div>
+        <div style="height:20px;"></div>
+        <div class="setting-row">
+          <label>Pattern / パターン</label>
+          <div class="option-grid">
+            <div class="option-btn ${sel(s.bgPattern,'solid')}" onclick="selectBgPattern('solid',this)">■ Solid / 単色</div>
+            <div class="option-btn ${sel(s.bgPattern,'checker')}" onclick="selectBgPattern('checker',this)">▦ Checker / 格子</div>
+          </div>
+        </div>
+        <div class="setting-row" style="margin-top:12px;">
+          <label>Area / 表示範囲</label>
+          <div style="margin-bottom:6px;">
+            <div class="option-grid" style="grid-template-columns:1fr;">
+              <div class="option-btn ${sel(s.bgArea,'full')}" onclick="selectBgArea('full',this)">▣ Full / 全面</div>
+            </div>
+          </div>
+          <label style="font-size:11px;color:var(--text-secondary);">Half / 片面</label>
+          <div class="option-grid" style="margin-bottom:6px;">
+            <div class="option-btn ${sel(s.bgArea,'left')}" onclick="selectBgArea('left',this)">▌ Left / 左</div>
+            <div class="option-btn ${sel(s.bgArea,'right')}" onclick="selectBgArea('right',this)">▐ Right / 右</div>
+          </div>
+          <label style="font-size:11px;color:var(--text-secondary);">Quarter / 四分割</label>
+          <div class="option-grid">
+            <div class="option-btn ${sel(s.bgArea,'q2')}" onclick="selectBgArea('q2',this)">◰ 左上</div>
+            <div class="option-btn ${sel(s.bgArea,'q1')}" onclick="selectBgArea('q1',this)">◳ 右上</div>
+            <div class="option-btn ${sel(s.bgArea,'q3')}" onclick="selectBgArea('q3',this)">◱ 左下</div>
+            <div class="option-btn ${sel(s.bgArea,'q4')}" onclick="selectBgArea('q4',this)">◲ 右下</div>
+          </div>
+        </div>
+      </div>
+      ${durationSection}
+      <button class="start-btn" onclick="startTraining()">▶ Start Training / 開始</button>
+      <button class="start-btn" onclick="showSaveOriginalDialog()" style="background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);margin-top:8px;font-size:14px;">
+        ⭐ Save as Original / オリジナルとして保存
+      </button>
+    `;
+  }
+  c.innerHTML = html;
+}
+
+function selectDir(dir, el) {
+  el.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.settings.direction = dir;
+  // Hide speed slider for random mode (speed varies automatically)
+  const speedSection = document.getElementById('speedSection');
+  if (speedSection) {
+    speedSection.style.display = (dir === 'random') ? 'none' : 'block';
+  }
+}
+function toggleOneWay(checked) {
+  state.settings.oneWay = checked;
+  const normalDir = document.getElementById('normalDirSection');
+  const owDir = document.getElementById('oneWayDirSection');
+  if (normalDir && owDir) {
+    if (checked) {
+      normalDir.style.display = 'none';
+      owDir.style.display = 'block';
+      state.settings.direction = 'ow-right';
+      // Show speed slider (one-way is never random)
+      const speedSection = document.getElementById('speedSection');
+      if (speedSection) speedSection.style.display = 'block';
+    } else {
+      normalDir.style.display = 'block';
+      owDir.style.display = 'none';
+      state.settings.direction = 'horizontal';
+    }
+  }
+}
+function onSpeedSlider(val) {
+  state.settings.speed = parseInt(val);
+  const label = document.getElementById('speedLabel');
+  if (label) label.textContent = SPEED_LABELS[val] || val;
+}
+function selectBgColor(color, el) {
+  el.parentElement.querySelectorAll('.bg-color-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.settings.bgColor = color;
+}
+function selectBgPattern(pattern, el) {
+  el.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.settings.bgPattern = pattern;
+}
+function selectBgArea(area, el) {
+  // Clear all area buttons across all groups
+  el.closest('.setting-row').querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.settings.bgArea = area;
+}
+function selectTargetType(type, el) {
+  // Clear all target type buttons across both grids
+  document.querySelectorAll('.target-type-grid .option-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.settings.targetType = type;
+}
+function selectTargetSize(size, el) {
+  el.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.settings.targetSize = size;
+}
+function selectDuration(dur, el) {
+  el.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.settings.duration = dur;
+}
+function selectFixationPerPos(sec, el) {
+  el.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  state.settings.fixationPerPos = sec;
+}
+function selectLevel(level) {
+  state.settings.continuousLevel = level;
+  document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+
+// ============================
+// TRAINING ENGINE
+// ============================
+const canvas = document.getElementById('training-canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function startTraining() {
+  resumeAudio();
+  showScreen('training-screen');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  const t = state.training;
+  t.active = true;
+  t.paused = false;
+  t.elapsed = 0;
+  t.pausedTime = 0;
+  t.numberSum = 0;
+  t.numbers = [];
+  t.currentNumber = 0;
+  t.numberChangeTimer = 0;
+
+  const modeTitles = {
+    pursuit: 'スムースパースー', saccade: 'サッカード', fixation: '注視'
+  };
+  document.getElementById('hudMode').textContent = modeTitles[state.currentMode] || state.currentMode;
+
+  showCountdown(() => {
+    t.startTime = performance.now();
+    if (state.currentMode === 'pursuit') initPursuit();
+    else if (state.currentMode === 'saccade') initSaccade();
+    else if (state.currentMode === 'fixation') initFixation();
+    gameLoop();
+  });
+}
+
+function showCountdown(callback) {
+  const overlay = document.getElementById('countdownOverlay');
+  const numEl = document.getElementById('countdownNumber');
+  const modeEl = document.getElementById('countdownMode');
+  const modeTitles = {
+    pursuit: 'Smooth Pursuit / スムースパースー',
+    saccade: 'Saccade / サッカード',
+    fixation: 'Gaze Fixation / 注視'
+  };
+  let modeText = modeTitles[state.currentMode] || '';
+  // Show hiragana prompt
+  if (state.settings.targetType === 'hiragana') {
+    const topic = HIRAGANA_TOPICS[Math.floor(Math.random() * HIRAGANA_TOPICS.length)];
+    state.training._hiraganaPrompt = topic.prompt;
+    state.training._hiraganaTopic = topic;
+    modeEl.innerHTML = modeText + '<br><span style="color:#ff9800;font-size:16px;font-weight:bold;margin-top:8px;display:inline-block;">📝 ' + topic.prompt + '</span>';
+  } else {
+    modeEl.textContent = modeText;
+  }
+  overlay.classList.add('active');
+  let count = 3;
+  numEl.textContent = count;
+  playBeep(400, 0.15);
+  const interval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      numEl.textContent = count;
+      numEl.style.animation = 'none';
+      void numEl.offsetWidth;
+      numEl.style.animation = 'countPulse 0.5s ease';
+      playBeep(400, 0.15);
+    } else {
+      numEl.textContent = 'GO!';
+      numEl.style.animation = 'none';
+      void numEl.offsetWidth;
+      numEl.style.animation = 'countPulse 0.5s ease';
+      playBeep(800, 0.2);
+      clearInterval(interval);
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        callback();
+      }, 500);
+    }
+  }, 800);
+}
+
+// --- PURSUIT ---
+function initPursuit() {
+  const t = state.training;
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+  const margin = 40;
+  const s = getSpeedValue('pursuit', state.settings.speed);
+  const dir = state.settings.direction;
+
+  // One-way modes (ow-*): start from opposite edge, move in one direction, wrap around
+  if (dir.startsWith('ow-')) {
+    const dirMap = {
+      'ow-right': { x: -margin, y: h/2, vx: 1, vy: 0 },
+      'ow-left':  { x: w+margin, y: h/2, vx: -1, vy: 0 },
+      'ow-up':    { x: w/2, y: h+margin, vx: 0, vy: -1 },
+      'ow-down':  { x: w/2, y: -margin, vx: 0, vy: 1 },
+      'ow-ru':    { x: -margin, y: h+margin, vx: 0.707, vy: -0.707 },
+      'ow-rd':    { x: -margin, y: -margin, vx: 0.707, vy: 0.707 },
+      'ow-lu':    { x: w+margin, y: h+margin, vx: -0.707, vy: -0.707 },
+      'ow-ld':    { x: w+margin, y: -margin, vx: -0.707, vy: 0.707 }
+    };
+    const d = dirMap[dir] || dirMap['ow-right'];
+    t.target = { x: d.x, y: d.y };
+    t.velocity = { x: d.vx * s, y: d.vy * s };
+  } else if (dir === 'horizontal') {
+    t.target = { x: margin, y: h / 2 };
+    t.velocity = { x: s, y: 0 };
+  } else if (dir === 'vertical') {
+    t.target = { x: w / 2, y: margin };
+    t.velocity = { x: 0, y: s };
+  } else if (dir === 'diag-right') {
+    // Fixed path: bottom-left corner ↔ top-right corner
+    t.target = { x: margin, y: h - margin };
+    const dx = (w - margin) - margin;
+    const dy = margin - (h - margin);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    t.velocity = { x: (dx / dist) * s, y: (dy / dist) * s };
+  } else if (dir === 'diag-left') {
+    // Fixed path: bottom-right corner ↔ top-left corner
+    t.target = { x: w - margin, y: h - margin };
+    const dx = margin - (w - margin);
+    const dy = margin - (h - margin);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    t.velocity = { x: (dx / dist) * s, y: (dy / dist) * s };
+  } else if (dir === 'random') {
+    // Random: start center, random angle, auto-speed
+    t.target = { x: w / 2, y: h / 2 };
+    const angle = Math.random() * Math.PI * 2;
+    const initSpeed = 3 + Math.random() * 4; // 3-7 initial
+    t.velocity = { x: Math.cos(angle) * initSpeed, y: Math.sin(angle) * initSpeed };
+    t._randomSpeedTimer = performance.now();
+    t._randomDirTimer = performance.now();
+    t._randomCurrentSpeed = initSpeed;
+  }
+
+  if (state.settings.targetType === 'number') {
+    t.currentNumber = Math.floor(Math.random() * 9) + 1;
+    t.numberSum = t.currentNumber;
+    t.numbers = [t.currentNumber];
+    t.numberChangeTimer = performance.now();
+  }
+  if (state.settings.targetType === 'hiragana') {
+    t.currentHiragana = randomHiragana(); if (!t.hiraganaHistory) t.hiraganaHistory = []; t.hiraganaHistory.push(t.currentHiragana);
+    t.numberChangeTimer = performance.now();
+  }
+}
+
+function updatePursuit(dt) {
+  const t = state.training;
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+  const margin = 40;
+  const dir = state.settings.direction;
+
+  t.target.x += t.velocity.x;
+  t.target.y += t.velocity.y;
+
+  if (dir.startsWith('ow-')) {
+    // One-way: wrap around when off-screen
+    const buf = 60;
+    if (t.target.x > w + buf) t.target.x = -buf;
+    if (t.target.x < -buf) t.target.x = w + buf;
+    if (t.target.y > h + buf) t.target.y = -buf;
+    if (t.target.y < -buf) t.target.y = h + buf;
+
+  } else if (dir === 'random') {
+    // Random: bounce + mid-flight direction changes + speed variation
+    const now = performance.now();
+
+    // Speed change every 1.5-3s
+    if (now - t._randomSpeedTimer > 1500 + Math.random() * 1500) {
+      t._randomCurrentSpeed = 1.5 + Math.random() * 16; // 1.5 ~ 17.5
+      t._randomSpeedTimer = now;
+    }
+
+    // Random direction change every 2-5s (mid-flight turn)
+    if (!t._randomDirTimer) t._randomDirTimer = now;
+    if (now - t._randomDirTimer > 2000 + Math.random() * 3000) {
+      // Choose: gentle curve, sharp turn, or reverse
+      const r = Math.random();
+      if (r < 0.4) {
+        // Gentle curve: rotate velocity 20-60 degrees
+        const angle = (Math.random() - 0.5) * Math.PI * 0.6;
+        const vx = t.velocity.x, vy = t.velocity.y;
+        t.velocity.x = vx * Math.cos(angle) - vy * Math.sin(angle);
+        t.velocity.y = vx * Math.sin(angle) + vy * Math.cos(angle);
+      } else if (r < 0.75) {
+        // Sharp turn: new random angle
+        const angle = Math.random() * Math.PI * 2;
+        const spd = t._randomCurrentSpeed;
+        t.velocity.x = Math.cos(angle) * spd;
+        t.velocity.y = Math.sin(angle) * spd;
+      } else {
+        // Sudden stop then new direction (brief pause effect via low speed)
+        const angle = Math.random() * Math.PI * 2;
+        t._randomCurrentSpeed = 0.8 + Math.random() * 2; // slow restart
+        t.velocity.x = Math.cos(angle) * t._randomCurrentSpeed;
+        t.velocity.y = Math.sin(angle) * t._randomCurrentSpeed;
+        // Speed will ramp back up at next speed timer
+        t._randomSpeedTimer = now;
+      }
+      t._randomDirTimer = now;
+    }
+
+    // Subtle drift: tiny random nudge each frame for organic feel
+    t.velocity.x += (Math.random() - 0.5) * 0.3;
+    t.velocity.y += (Math.random() - 0.5) * 0.3;
+
+    const rs = t._randomCurrentSpeed;
+
+    // Bounce off walls
+    if (t.target.x < margin || t.target.x > w - margin) {
+      t.velocity.x *= -1;
+      t.target.x = Math.max(margin, Math.min(w - margin, t.target.x));
+      t.velocity.y += (Math.random() - 0.5) * 4;
+    }
+    if (t.target.y < margin || t.target.y > h - margin) {
+      t.velocity.y *= -1;
+      t.target.y = Math.max(margin, Math.min(h - margin, t.target.y));
+      t.velocity.x += (Math.random() - 0.5) * 4;
+    }
+
+    // Normalize to current speed
+    const mag = Math.sqrt(t.velocity.x ** 2 + t.velocity.y ** 2);
+    if (mag > 0) {
+      t.velocity.x = (t.velocity.x / mag) * rs;
+      t.velocity.y = (t.velocity.y / mag) * rs;
+    }
+
+  } else if (dir === 'diag-right') {
+    // Fixed corner-to-corner: bottom-left ↔ top-right
+    if (t.target.x <= margin || t.target.x >= w - margin ||
+        t.target.y <= margin || t.target.y >= h - margin) {
+      if (t.velocity.x > 0) {
+        t.target.x = w - margin; t.target.y = margin;
+      } else {
+        t.target.x = margin; t.target.y = h - margin;
+      }
+      t.velocity.x *= -1;
+      t.velocity.y *= -1;
+    }
+
+  } else if (dir === 'diag-left') {
+    // Fixed corner-to-corner: bottom-right ↔ top-left
+    if (t.target.x <= margin || t.target.x >= w - margin ||
+        t.target.y <= margin || t.target.y >= h - margin) {
+      if (t.velocity.x < 0) {
+        t.target.x = margin; t.target.y = margin;
+      } else {
+        t.target.x = w - margin; t.target.y = h - margin;
+      }
+      t.velocity.x *= -1;
+      t.velocity.y *= -1;
+    }
+
+  } else {
+    // Horizontal / Vertical: simple bounce
+    if (t.target.x < margin || t.target.x > w - margin) {
+      t.velocity.x *= -1;
+      t.target.x = Math.max(margin, Math.min(w - margin, t.target.x));
+    }
+    if (t.target.y < margin || t.target.y > h - margin) {
+      t.velocity.y *= -1;
+      t.target.y = Math.max(margin, Math.min(h - margin, t.target.y));
+    }
+  }
+
+  // Number change every 3s, hiragana every 10s for pursuit
+  if (state.settings.targetType === 'number') {
+    const now = performance.now();
+    if (now - t.numberChangeTimer > 3000) {
+      t.currentNumber = Math.floor(Math.random() * 9) + 1;
+      t.numberSum += t.currentNumber;
+      t.numbers.push(t.currentNumber);
+      t.numberChangeTimer = now;
+    }
+  }
+  if (state.settings.targetType === 'hiragana') {
+    const now = performance.now();
+    if (now - t.numberChangeTimer > 5000) {
+      t.currentHiragana = randomHiragana(); if (!t.hiraganaHistory) t.hiraganaHistory = []; t.hiraganaHistory.push(t.currentHiragana);
+      t.numberChangeTimer = now;
+    }
+  }
+}
+
+// --- SACCADE ---
+function initSaccade() {
+  const t = state.training;
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+  const margin = 60;
+  const cx = w / 2, cy = h / 2;
+  const dir = state.settings.direction;
+
+  if (dir === 'horizontal') {
+    t.saccadeTargets = [{ x: margin, y: cy }, { x: w - margin, y: cy }];
+  } else if (dir === 'vertical') {
+    t.saccadeTargets = [{ x: cx, y: margin }, { x: cx, y: h - margin }];
+  } else if (dir === 'diag-right') {
+    t.saccadeTargets = [{ x: margin, y: h - margin }, { x: w - margin, y: margin }];
+  } else if (dir === 'diag-left') {
+    t.saccadeTargets = [{ x: w - margin, y: h - margin }, { x: margin, y: margin }];
+  } else if (dir === 'random') {
+    // Generate first random position
+    t.saccadeTargets = [{ x: margin + Math.random() * (w - margin * 2), y: margin + Math.random() * (h - margin * 2) }];
+    t._saccadeRandom = true;
+  }
+  if (dir !== 'random') t._saccadeRandom = false;
+  t.saccadeIndex = 0;
+  t.target = { ...t.saccadeTargets[0] };
+  t.saccadeTimer = performance.now();
+
+  if (state.settings.targetType === 'number') {
+    t.currentNumber = Math.floor(Math.random() * 9) + 1;
+    t.numberSum = t.currentNumber;
+    t.numbers = [t.currentNumber];
+  }
+  if (state.settings.targetType === 'hiragana') {
+    t.currentHiragana = randomHiragana(); if (!t.hiraganaHistory) t.hiraganaHistory = []; t.hiraganaHistory.push(t.currentHiragana);
+  }
+}
+
+function updateSaccade() {
+  const t = state.training;
+  const interval = getSpeedValue('saccade', state.settings.speed);
+  const now = performance.now();
+
+  if (now - t.saccadeTimer > interval) {
+    if (t._saccadeRandom) {
+      // Random: new random position each time
+      const w = canvas.width / (window.devicePixelRatio || 1);
+      const h = canvas.height / (window.devicePixelRatio || 1);
+      const margin = 60;
+      t.target = {
+        x: margin + Math.random() * (w - margin * 2),
+        y: margin + Math.random() * (h - margin * 2)
+      };
+    } else {
+      t.saccadeIndex = (t.saccadeIndex + 1) % t.saccadeTargets.length;
+      t.target = { ...t.saccadeTargets[t.saccadeIndex] };
+    }
+    t.saccadeTimer = now;
+    playBeep(500, 0.05);
+
+    if (state.settings.targetType === 'number') {
+      t.currentNumber = Math.floor(Math.random() * 9) + 1;
+      t.numberSum += t.currentNumber;
+      t.numbers.push(t.currentNumber);
+    }
+  }
+
+  // Hiragana changes every 10s (independent of saccade jumps)
+  if (state.settings.targetType === 'hiragana') {
+    if (!t._hiraganaTimer) t._hiraganaTimer = now;
+    if (now - t._hiraganaTimer > 5000) {
+      t.currentHiragana = randomHiragana(); if (!t.hiraganaHistory) t.hiraganaHistory = []; t.hiraganaHistory.push(t.currentHiragana);
+      t._hiraganaTimer = now;
+    }
+  }
+}
+
+// --- FIXATION ---
+function initFixation() {
+  const t = state.training;
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+  const margin = 60;
+  const cx = w / 2, cy = h / 2;
+
+  // 9 positions: 8 directions + center
+  t.fixationPositions = [
+    { x: cx, y: margin },
+    { x: w - margin, y: margin },
+    { x: w - margin, y: cy },
+    { x: w - margin, y: h - margin },
+    { x: cx, y: h - margin },
+    { x: margin, y: h - margin },
+    { x: margin, y: cy },
+    { x: margin, y: margin },
+    { x: cx, y: cy }
+  ];
+  t.fixationIndex = 0;
+  t.fixationComplete = false;
+  t.target = { ...t.fixationPositions[0] };
+  t.fixationInterval = state.settings.fixationPerPos * 1000;
+  t.fixationTimer = performance.now();
+
+  if (state.settings.targetType === 'number') {
+    t.currentNumber = Math.floor(Math.random() * 9) + 1;
+    t.numberSum = t.currentNumber;
+    t.numbers = [t.currentNumber];
+  }
+  if (state.settings.targetType === 'hiragana') {
+    t.currentHiragana = randomHiragana(); if (!t.hiraganaHistory) t.hiraganaHistory = []; t.hiraganaHistory.push(t.currentHiragana);
+  }
+}
+
+function updateFixation() {
+  const t = state.training;
+  const now = performance.now();
+
+  if (now - t.fixationTimer > t.fixationInterval) {
+    t.fixationIndex++;
+    // Check if all positions done
+    if (t.fixationIndex >= t.fixationPositions.length) {
+      t.fixationComplete = true;
+      return; // will be caught by gameLoop
+    }
+    t.target = { ...t.fixationPositions[t.fixationIndex] };
+    t.fixationTimer = now;
+    playBeep(600, 0.06);
+
+    if (state.settings.targetType === 'number') {
+      t.currentNumber = Math.floor(Math.random() * 9) + 1;
+      t.numberSum += t.currentNumber;
+      t.numbers.push(t.currentNumber);
+    }
+  }
+
+  // Hiragana changes every 10s (independent of position changes)
+  if (state.settings.targetType === 'hiragana') {
+    if (!t._hiraganaTimer) t._hiraganaTimer = now;
+    if (now - t._hiraganaTimer > 5000) {
+      t.currentHiragana = randomHiragana(); if (!t.hiraganaHistory) t.hiraganaHistory = []; t.hiraganaHistory.push(t.currentHiragana);
+      t._hiraganaTimer = now;
+    }
+  }
+}
+
+// ============================
+// CONTINUOUS MODE
+// ============================
+function startContinuous() {
+  const preset = CONTINUOUS_PRESETS[state.settings.continuousLevel];
+  state.settings.speed = preset.speed;
+  state.settings.targetSize = preset.size;
+  state.settings.targetType = preset.targetType;
+
+  // Build queue: pursuit (4 dirs) + saccade (5 dirs inc random) + fixation
+  const pursuitDirs = ['horizontal', 'vertical', 'diag-right', 'diag-left'];
+  const saccadeDirs = ['horizontal', 'vertical', 'diag-right', 'diag-left', 'random'];
+  const queue = [];
+
+  pursuitDirs.forEach(d => queue.push({ mode: 'pursuit', direction: d, duration: preset.duration }));
+  saccadeDirs.forEach(d => queue.push({ mode: 'saccade', direction: d, duration: preset.duration }));
+  queue.push({ mode: 'fixation', direction: null, duration: preset.duration });
+
+  state.training.continuousQueue = queue;
+  state.training.continuousIndex = 0;
+  state.training.numberSum = 0;
+  state.training.numbers = [];
+
+  runNextContinuous();
+}
+
+function runNextContinuous() {
+  const t = state.training;
+  const queue = t.continuousQueue;
+  if (t.continuousIndex >= queue.length) {
+    showContinuousResults();
+    return;
+  }
+  const item = queue[t.continuousIndex];
+  state.currentMode = item.mode;
+  state.settings.direction = item.direction || 'horizontal';
+  state.settings.duration = item.duration;
+  // For fixation in continuous mode, set per-position time
+  if (item.mode === 'fixation') {
+    state.settings.fixationPerPos = Math.max(2, Math.round(item.duration / 9));
+  }
+  // Preserve number tracking across sessions
+  const prevSum = t.numberSum;
+  const prevNumbers = [...t.numbers];
+
+  startTraining();
+
+  t.numberSum = prevSum;
+  t.numbers = prevNumbers;
+  // Override finish to go to next
+  t._continuousMode = true;
+}
+
+function showContinuousResults() {
+  state.training._continuousMode = false;
+  const t = state.training;
+  let html = `
+    <h2>🏆 Continuous Training Complete!</h2>
+    <div class="result-card">
+      <div class="result-label">Level / レベル</div>
+      <div class="result-value" style="font-size:20px;">
+        ${CONTINUOUS_PRESETS[state.settings.continuousLevel].label}
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Total Sessions / 総セッション</div>
+      <div class="result-value">${state.training.continuousQueue.length}</div>
+    </div>
+  `;
+
+  if (state.settings.targetType === 'number' && t.numbers.length > 0) {
+    html += `
+      <div class="number-input-area">
+        <label>Enter the sum of all numbers / 数字の合計を入力</label>
+        <input type="number" id="numberAnswer" inputmode="numeric" pattern="[0-9]*">
+        <br><br>
+        <button class="start-btn" onclick="checkContinuousNumber()" style="width:auto;display:inline-block;padding:10px 30px;">
+          Check / 確認
+        </button>
+        <div id="continuousNumberResult"></div>
+      </div>
+    `;
+  }
+
+  html += `
+  <button class="start-btn" onclick="startContinuous()" style="margin-top:16px;">
+    🔄 Retry / もう一度（同じレベル）
+  </button>
+  <button class="start-btn" onclick="selectMode('continuous')" style="background:var(--accent-purple);margin-top:8px;">
+    ⚙️ Change Level / レベル変更
+  </button>
+  <button class="start-btn" onclick="showScreen('home-screen')" style="background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);margin-top:8px;">
+    🏠 Home / ホームへ
+  </button>`;
+
+  document.getElementById('resultsContent').innerHTML = html;
+  showScreen('results-screen');
+}
+
+function checkContinuousNumber() {
+  const input = parseInt(document.getElementById('numberAnswer').value);
+  const correct = state.training.numberSum;
+  const el = document.getElementById('continuousNumberResult');
+  if (input === correct) {
+    el.innerHTML = `<div class="number-result correct">✅ Correct! / 正解! (${correct})</div>`;
+    playBeep(800, 0.2);
+  } else {
+    el.innerHTML = `<div class="number-result incorrect">❌ Incorrect / 不正解<br>Your answer: ${input} | Correct: ${correct}</div>`;
+    playBeep(300, 0.3);
+  }
+}
+
+// ============================
+// GAME LOOP
+// ============================
+function gameLoop() {
+  const t = state.training;
+  if (!t.active) return;
+  if (t.paused) {
+    t.animFrame = requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  const now = performance.now();
+  const elapsed = (now - t.startTime - t.pausedTime) / 1000;
+  t.elapsed = elapsed;
+
+  // Update HUD
+  const remaining = Math.max(0, state.settings.duration - elapsed);
+  const mins = Math.floor(remaining / 60);
+  const secs = Math.floor(remaining % 60);
+  if (state.currentMode === 'fixation') {
+    const pos = Math.min(state.training.fixationIndex + 1, 9);
+    document.getElementById('hudTime').textContent = `${pos} / 9`;
+  } else {
+    document.getElementById('hudTime').textContent =
+      `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  // Duration check (not for fixation - fixation ends by cycle)
+  if (state.currentMode !== 'fixation' && elapsed >= state.settings.duration) {
+    finishTraining();
+    return;
+  }
+
+  // Check fixation complete (all positions done)
+  if (state.currentMode === 'fixation' && state.training.fixationComplete) {
+    finishTraining();
+    return;
+  }
+
+  // Update
+  if (state.currentMode === 'pursuit') updatePursuit();
+  else if (state.currentMode === 'saccade') updateSaccade();
+  else if (state.currentMode === 'fixation') updateFixation();
+
+  // Draw
+  draw();
+  t.animFrame = requestAnimationFrame(gameLoop);
+}
+
+function draw() {
+  const t = state.training;
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+
+  // Always fill white base first
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, w, h);
+
+  const bgColor = state.settings.bgColor;
+  const bgArea = state.settings.bgArea;
+  const bgPattern = state.settings.bgPattern;
+  const isWhiteBg = bgColor === '#ffffff';
+
+  // Calculate area rect
+  let ax = 0, ay = 0, aw = w, ah = h;
+  if (bgArea === 'right') { ax = w / 2; aw = w / 2; }
+  else if (bgArea === 'left') { aw = w / 2; }
+  else if (bgArea === 'q1') { ax = w / 2; aw = w / 2; ah = h / 2; }
+  else if (bgArea === 'q2') { aw = w / 2; ah = h / 2; }
+  else if (bgArea === 'q3') { aw = w / 2; ay = h / 2; ah = h / 2; }
+  else if (bgArea === 'q4') { ax = w / 2; aw = w / 2; ay = h / 2; ah = h / 2; }
+
+  if (bgPattern === 'checker' && !isWhiteBg) {
+    // Checker pattern: grid that randomly swaps every 500ms
+    const cellSize = 40;
+    const cols = Math.ceil(aw / cellSize);
+    const rows = Math.ceil(ah / cellSize);
+    const timeSeed = Math.floor(performance.now() / 500);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ax, ay, aw, ah);
+    ctx.clip();
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        let isColored = (r + c) % 2 === 0;
+        const hash = ((r * 7 + c * 13 + timeSeed * 3) % 11);
+        if (hash < 3) isColored = !isColored;
+        ctx.fillStyle = isColored ? bgColor : '#ffffff';
+        ctx.fillRect(ax + c * cellSize, ay + r * cellSize, cellSize, cellSize);
+      }
+    }
+    ctx.restore();
+  } else if (!isWhiteBg) {
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(ax, ay, aw, ah);
+  }
+
+  // Draw center reference dot
+  ctx.fillStyle = isWhiteBg ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)';
+  ctx.beginPath();
+  ctx.arc(w / 2, h / 2, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Draw target
+  const size = SIZES[state.settings.targetSize] || 20;
+  // Auto color: black on checker or partial area, white on full solid color, user color on white bg
+  const isChecker = bgPattern === 'checker' && !isWhiteBg;
+  const isPartialArea = bgArea !== 'full' && !isWhiteBg;
+  const color = isWhiteBg ? state.settings.targetColor : ((isChecker || isPartialArea) ? '#000000' : '#ffffff');
+  const x = t.target.x;
+  const y = t.target.y;
+  const type = state.settings.targetType;
+
+  if (type === 'circle') {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    ctx.arc(x - size * 0.25, y - size * 0.25, size * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (type === 'cross') {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(3, size * 0.2);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - size, y); ctx.lineTo(x + size, y);
+    ctx.moveTo(x, y - size); ctx.lineTo(x, y + size);
+    ctx.stroke();
+  } else if (type === 'ring') {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(3, size * 0.2);
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, size * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (type === 'number') {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, size * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = isWhiteBg ? '#ffffff' : ((isChecker || isPartialArea) ? '#ffffff' : state.settings.bgColor);
+    ctx.font = `bold ${size * 1.4}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t.currentNumber.toString(), x, y + 1);
+  } else if (type === 'troxler') {
+    // Troxler fading effect: 12 pink dots in a circle, one disappears clockwise
+    const dotCount = 12;
+    const radius = size * 3.5; // ring radius
+    const dotSize = size * 0.45; // each small dot
+    const pinkColor = 'rgba(255, 130, 180, 0.18)'; // very faint pink
+    // Which dot is currently missing (cycles clockwise)
+    const cycleSpeed = 150; // ms per step (faster rotation)
+    const missingIndex = Math.floor(performance.now() / cycleSpeed) % dotCount;
+
+    for (let i = 0; i < dotCount; i++) {
+      if (i === missingIndex) continue; // skip the missing dot
+      const angle = (i / dotCount) * Math.PI * 2 - Math.PI / 2; // start from top
+      const dx = x + Math.cos(angle) * radius;
+      const dy = y + Math.sin(angle) * radius;
+      ctx.fillStyle = pinkColor;
+      ctx.beginPath();
+      ctx.arc(dx, dy, dotSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Center fixation cross (green for visibility)
+    const crossSize = 6;
+    ctx.strokeStyle = '#00aa00';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - crossSize, y); ctx.lineTo(x + crossSize, y);
+    ctx.moveTo(x, y - crossSize); ctx.lineTo(x, y + crossSize);
+    ctx.stroke();
+  } else if (type === 'hiragana') {
+    // Hiragana character in circle
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, size * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = isWhiteBg ? '#ffffff' : ((isChecker || isPartialArea) ? '#ffffff' : state.settings.bgColor);
+    ctx.font = `bold ${size * 1.4}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t.currentHiragana || 'あ', x, y + 1);
+  }
+}
+
+
+// ============================
+// PAUSE & FINISH
+// ============================
+function togglePause() {
+  const t = state.training;
+  t.paused = !t.paused;
+  const overlay = document.getElementById('pauseOverlay');
+  if (t.paused) {
+    overlay.classList.add('active');
+    t._pauseStart = performance.now();
+  } else {
+    overlay.classList.remove('active');
+    t.pausedTime += performance.now() - t._pauseStart;
+  }
+}
+
+function quitTraining() {
+  const t = state.training;
+  t.active = false;
+  t.paused = false;
+  if (t.animFrame) cancelAnimationFrame(t.animFrame);
+  document.getElementById('pauseOverlay').classList.remove('active');
+  window.removeEventListener('resize', resizeCanvas);
+  showScreen('home-screen');
+}
+
+function goToSettings() {
+  const t = state.training;
+  t.active = false;
+  t.paused = false;
+  if (t.animFrame) cancelAnimationFrame(t.animFrame);
+  document.getElementById('pauseOverlay').classList.remove('active');
+  window.removeEventListener('resize', resizeCanvas);
+  selectMode(state.currentMode, true);
+}
+
+function finishTraining() {
+  const t = state.training;
+  t.active = false;
+  if (t.animFrame) cancelAnimationFrame(t.animFrame);
+  window.removeEventListener('resize', resizeCanvas);
+  playBeep(1000, 0.3);
+
+  // If continuous mode, go to next
+  if (t._continuousMode) {
+    t.continuousIndex++;
+    setTimeout(() => runNextContinuous(), 800);
+    return;
+  }
+
+  // Show results
+  const modeTitles = {
+    pursuit: 'Smooth Pursuit / スムースパースー',
+    saccade: 'Saccade / サッカード',
+    fixation: 'Gaze Fixation / 注視'
+  };
+
+  let html = `
+    <h2>✅ Training Complete!</h2>
+    <div class="result-card">
+      <div class="result-label">Mode / モード</div>
+      <div class="result-value" style="font-size:18px;">${modeTitles[state.currentMode]}</div>
+    </div>
+  `;
+
+  if (state.currentMode === 'fixation') {
+    html += `
+    <div class="result-card">
+      <div class="result-label">Per Position / 各ポジション</div>
+      <div class="result-value">${state.settings.fixationPerPos}s × 9</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Positions / ポジション</div>
+      <div class="result-value" style="font-size:20px;">9 / 9 ✓</div>
+    </div>`;
+  } else {
+    html += `
+    <div class="result-card">
+      <div class="result-label">Duration / 時間</div>
+      <div class="result-value">${state.settings.duration}s</div>
+    </div>`;
+    if (state.settings.direction !== 'random') {
+      html += `
+      <div class="result-card">
+        <div class="result-label">Speed / スピード</div>
+        <div class="result-value" style="font-size:20px;">${SPEED_LABELS[state.settings.speed] || state.settings.speed}</div>
+      </div>`;
+    }
+  }
+
+  // Show hiragana prompt and history if used
+  if (state.settings.targetType === 'hiragana' && t._hiraganaPrompt) {
+    html += `
+    <div class="result-card">
+      <div class="result-label">📝 お題 / Prompt</div>
+      <div class="result-value" style="font-size:14px;">${t._hiraganaPrompt}</div>
+    </div>`;
+    if (t.hiraganaHistory && t.hiraganaHistory.length > 0) {
+      const topic = t._hiraganaTopic;
+      const listHtml = t.hiraganaHistory.map((h) => {
+        const ex = topic && topic.examples[h] ? topic.examples[h] : '—';
+        return `<div style="display:inline-flex;align-items:center;gap:4px;margin:3px;padding:4px 10px 4px 4px;border-radius:8px;background:var(--bg-primary);border:1px solid var(--border-color);">
+          <span style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;border-radius:6px;background:var(--accent-blue);color:#fff;font-size:15px;font-weight:bold;">${h}</span>
+          <span style="font-size:13px;color:var(--text-primary);">${ex}</span>
+        </div>`;
+      }).join('');
+      html += `
+      <div class="result-card">
+        <div class="result-label">表示されたひらがな＋例 (${t.hiraganaHistory.length}文字)</div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;justify-content:center;">${listHtml}</div>
+      </div>`;
+    }
+  }
+
+  if (state.settings.targetType === 'number' && t.numbers.length > 0) {
+    html += `
+      <div class="number-input-area">
+        <label>Enter the sum of all numbers / 数字の合計を入力</label>
+        <input type="number" id="numberAnswer" inputmode="numeric" pattern="[0-9]*">
+        <br><br>
+        <button class="start-btn" onclick="checkNumber()" style="width:auto;display:inline-block;padding:10px 30px;">
+          Check / 確認
+        </button>
+        <div id="numberResult"></div>
+      </div>
+    `;
+  }
+
+  html += `
+    <button class="start-btn" onclick="startTraining()" style="margin-top:12px;">
+      🔄 Retry / もう一度（同じ設定）
+    </button>
+    <button class="start-btn" onclick="selectMode('${state.currentMode}',true)" style="background:var(--accent-purple);margin-top:8px;">
+      ⚙️ Change Settings / 設定を変更
+    </button>
+    <button class="start-btn" onclick="showScreen('home-screen')" style="background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);margin-top:8px;">
+      🏠 Home / ホームへ
+    </button>
+  `;
+
+  document.getElementById('resultsContent').innerHTML = html;
+  showScreen('results-screen');
+}
+
+function checkNumber() {
+  const input = parseInt(document.getElementById('numberAnswer').value);
+  const correct = state.training.numberSum;
+  const el = document.getElementById('numberResult');
+  if (input === correct) {
+    el.innerHTML = `<div class="number-result correct">✅ Correct! / 正解! (${correct})</div>`;
+    playBeep(800, 0.2);
+  } else {
+    el.innerHTML = `<div class="number-result incorrect">❌ Incorrect / 不正解<br>Your answer / あなたの回答: ${input}<br>Correct / 正解: ${correct}</div>`;
+    playBeep(300, 0.3);
+  }
+}
+
+// Prevent all unwanted scrolling/zooming
+document.addEventListener('touchmove', function(e) {
+  if (!e.target.closest('#home-screen, #settings-screen, #results-screen, #sideMenu, #saveOriginalDialog')) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
+</script>
+</body>
+</html>
