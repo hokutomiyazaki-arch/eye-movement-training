@@ -789,8 +789,8 @@ function getSpeedValue(mode, sliderVal) {
     // 1=0.5px/frame → 10=22px/frame (10 is extremely fast)
     return 0.5 + (v - 1) * 2.39;
   } else if (mode === 'saccade') {
-    // 1=3000ms → 10=80ms interval
-    return Math.round(3000 - (v - 1) * 324);
+    // 1=2000ms → 10=150ms interval
+    return Math.round(2000 - (v - 1) * 206);
   } else if (mode === 'fixation') {
     // 1=4000ms → 10=200ms interval
     return Math.round(4000 - (v - 1) * 422);
