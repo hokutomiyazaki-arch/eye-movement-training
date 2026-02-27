@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eye-movement-training-v26';
+const CACHE_NAME = 'eye-movement-training-v27';
 const ASSETS = [
   './',
   './index.html',
