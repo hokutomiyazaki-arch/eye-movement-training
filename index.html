@@ -814,6 +814,7 @@ const SPEED_LABELS = {
 const SIZES = { small: 10, medium: 18, large: 28, xlarge: 42 };
 
 // Hiragana topics: each topic has only chars that have valid answers
+// KEY RULE: the key hiragana must match the READING of the answer word
 const HIRAGANA_TOPICS = [
   {
     prompt: 'ひらがなから始まる食べ物をイメージしてください',
@@ -825,7 +826,7 @@ const HIRAGANA_TOPICS = [
   },
   {
     prompt: 'ひらがなから始まる野菜をイメージしてください',
-    examples: {あ:'アスパラガス',い:'いんげん',え:'えだまめ',お:'オクラ',か:'かぼちゃ',き:'きゅうり',こ:'ごぼう',さ:'さつまいも',し:'しいたけ',せ:'セロリ',た:'たまねぎ',と:'トマト',な:'なす',に:'にんじん',ね:'ねぎ',の:'のざわな',は:'はくさい',ほ:'ほうれんそう',ま:'まめ',み:'みつば',も:'もやし',や:'やまいも',よ:'よもぎ',ら:'らっきょう',り:'リーフレタス',れ:'レンコン',わ:'わさび'}
+    examples: {あ:'アスパラガス',い:'いんげん',え:'えだまめ',お:'オクラ',か:'かぼちゃ',き:'きゅうり',こ:'こまつな',さ:'さつまいも',し:'しいたけ',せ:'セロリ',た:'たまねぎ',と:'トマト',な:'なす',に:'にんじん',ね:'ねぎ',の:'のざわな',は:'はくさい',ほ:'ほうれんそう',ま:'まめ',み:'みつば',も:'もやし',や:'やまいも',よ:'よもぎ',ら:'らっきょう',り:'リーフレタス',れ:'レンコン',わ:'わさび'}
   },
   {
     prompt: 'ひらがなから始まる果物をイメージしてください',
@@ -833,7 +834,7 @@ const HIRAGANA_TOPICS = [
   },
   {
     prompt: 'ひらがなから始まる魚をイメージしてください',
-    examples: {あ:'アジ',い:'イワシ',う:'ウナギ',え:'エイ',お:'おこぜ',か:'カツオ',き:'キス',こ:'コイ',さ:'サケ',し:'シラス',す:'スズキ',た:'タイ',ち:'ちりめんじゃこ',て:'てっちり（フグ）',と:'トビウオ',な:'ナマズ',に:'ニシン',は:'ハマチ',ひ:'ヒラメ',ふ:'フグ',ほ:'ホッケ',ま:'マグロ',め:'メバル'}
+    examples: {あ:'アジ',い:'イワシ',う:'ウナギ',え:'エイ',お:'おこぜ',か:'カツオ',き:'キス',こ:'コイ',さ:'サケ',し:'シラス',す:'スズキ',た:'タイ',ち:'ちりめんじゃこ',と:'トビウオ',な:'ナマズ',に:'ニシン',は:'ハマチ',ひ:'ヒラメ',ふ:'フグ',ほ:'ホッケ',ま:'マグロ',め:'メバル'}
   },
   {
     prompt: 'ひらがなから始まる花をイメージしてください',
@@ -845,11 +846,11 @@ const HIRAGANA_TOPICS = [
   },
   {
     prompt: 'ひらがなから始まる乗り物をイメージしてください',
-    examples: {う:'うま車',お:'オートバイ',か:'カヌー',き:'気球',く:'車',こ:'ゴーカート',さ:'三輪車',し:'新幹線',す:'スクーター',せ:'潜水艦',そ:'そり',た:'タクシー',ち:'地下鉄',て:'電車',と:'トラック',な:'ナビ船',に:'人力車',は:'バス',ひ:'飛行機',ふ:'フェリー',ほ:'帆船',ま:'馬車',も:'モノレール',よ:'ヨット',ろ:'ロケット'}
+    examples: {お:'オートバイ',か:'カヌー',き:'気球',く:'車',さ:'三輪車',し:'新幹線',す:'スクーター',せ:'潜水艦',そ:'そり',た:'タクシー',ち:'地下鉄',と:'トラック',ひ:'飛行機',ふ:'フェリー',ほ:'ホバークラフト',も:'モノレール',よ:'ヨット',ろ:'ロケット'}
   },
   {
     prompt: 'ひらがなから始まるスポーツをイメージしてください',
-    examples: {あ:'アーチェリー',い:'一輪車競技',う:'ウエイトリフティング',え:'エアロビクス',お:'オリエンテーリング',か:'空手',き:'競泳',く:'クリケット',け:'剣道',こ:'ゴルフ',さ:'サッカー',し:'柔道',す:'相撲',せ:'セーリング',そ:'ソフトボール',た:'卓球',ち:'チアリーディング',て:'テニス',と:'飛び込み',な:'なわとび',は:'バスケ',ひ:'ビリヤード',ふ:'フェンシング',ほ:'ホッケー',ま:'マラソン',や:'野球',ら:'ラグビー',り:'陸上'}
+    examples: {あ:'アーチェリー',い:'一輪車競技',う:'ウエイトリフティング',え:'エアロビクス',お:'オリエンテーリング',か:'空手',き:'競泳',く:'クリケット',け:'剣道',さ:'サッカー',し:'新体操',す:'相撲',せ:'セーリング',そ:'ソフトボール',た:'卓球',ち:'チアリーディング',て:'テニス',と:'飛び込み',な:'なわとび',は:'ハンドボール',ふ:'フェンシング',ほ:'ホッケー',ま:'マラソン',や:'野球',ら:'ラグビー',り:'陸上'}
   }
 ];
 
@@ -857,6 +858,13 @@ function randomHiragana() {
   const topic = state.training._hiraganaTopic;
   const keys = topic ? Object.keys(topic.examples) : Object.keys(HIRAGANA_TOPICS[0].examples);
   return keys[Math.floor(Math.random() * keys.length)];
+}
+
+function randomNumber() {
+  const prev = state.training.currentNumber || 0;
+  let n;
+  do { n = Math.floor(Math.random() * 9) + 1; } while (n === prev);
+  return n;
 }
 
 // ============================
@@ -1686,7 +1694,7 @@ function initPursuit() {
   }
 
   if (state.settings.targetType === 'number') {
-    t.currentNumber = Math.floor(Math.random() * 9) + 1;
+    t.currentNumber = randomNumber();
     t.numberSum = t.currentNumber;
     t.numbers = [t.currentNumber];
     t.numberChangeTimer = performance.now();
@@ -1821,7 +1829,7 @@ function updatePursuit(dt) {
   if (state.settings.targetType === 'number') {
     const now = performance.now();
     if (now - t.numberChangeTimer > 3000) {
-      t.currentNumber = Math.floor(Math.random() * 9) + 1;
+      t.currentNumber = randomNumber();
       t.numberSum += t.currentNumber;
       t.numbers.push(t.currentNumber);
       t.numberChangeTimer = now;
@@ -1864,7 +1872,7 @@ function initSaccade() {
   t.saccadeTimer = performance.now();
 
   if (state.settings.targetType === 'number') {
-    t.currentNumber = Math.floor(Math.random() * 9) + 1;
+    t.currentNumber = randomNumber();
     t.numberSum = t.currentNumber;
     t.numbers = [t.currentNumber];
   }
@@ -1896,7 +1904,7 @@ function updateSaccade() {
     playBeep(500, 0.05);
 
     if (state.settings.targetType === 'number') {
-      t.currentNumber = Math.floor(Math.random() * 9) + 1;
+      t.currentNumber = randomNumber();
       t.numberSum += t.currentNumber;
       t.numbers.push(t.currentNumber);
     }
@@ -1939,7 +1947,7 @@ function initFixation() {
   t.fixationTimer = performance.now();
 
   if (state.settings.targetType === 'number') {
-    t.currentNumber = Math.floor(Math.random() * 9) + 1;
+    t.currentNumber = randomNumber();
     t.numberSum = t.currentNumber;
     t.numbers = [t.currentNumber];
   }
@@ -1964,7 +1972,7 @@ function updateFixation() {
     playBeep(600, 0.06);
 
     if (state.settings.targetType === 'number') {
-      t.currentNumber = Math.floor(Math.random() * 9) + 1;
+      t.currentNumber = randomNumber();
       t.numberSum += t.currentNumber;
       t.numbers.push(t.currentNumber);
     }
