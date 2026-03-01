@@ -217,6 +217,10 @@ html, body {
   cursor: pointer; transition: transform 0.1s;
 }
 .original-card:active { transform: scale(0.98); }
+.original-card-check {
+  flex-shrink: 0; width: 22px; height: 22px;
+  accent-color: var(--accent-blue);
+}
 .original-card-icon {
   width: 40px; height: 40px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
@@ -611,9 +615,9 @@ input[type="range"]::-moz-range-thumb {
       <div class="menu-divider"></div>
 
       <div class="menu-mode-section">
-        <div class="menu-mode-title">⭐ オリジナルトレーニング</div>
+        <div class="menu-mode-title">🏋️ マイトレーニング</div>
         <div class="menu-mode-desc">
-          設定画面の「⭐ Save as Original」で現在の設定を名前をつけて保存できます。トップページからワンタップで起動可能。端末のローカルストレージに保存されます。
+          設定画面の「🏋️ Save to My Training」で現在の設定を名前をつけて保存できます。ホーム画面のマイトレーニングにチェックを入れて「▶ Play」で選択したトレーニングを連続再生。端末のローカルストレージに保存されます。
         </div>
       </div>
 
@@ -669,7 +673,12 @@ input[type="range"]::-moz-range-thumb {
       </div>
 
       <div class="original-section">
-        <h3>⭐ Original Training / オリジナルトレーニング</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <h3 style="margin:0;">🏋️ My Training / マイトレーニング</h3>
+          <button id="myTrainingPlayBtn" class="start-btn" onclick="startMyTrainingChain()" style="display:none;margin:0;padding:6px 14px;font-size:13px;width:auto;">
+            ▶ Play Selected
+          </button>
+        </div>
         <div id="originalList"></div>
       </div>
     </div>
@@ -702,11 +711,16 @@ input[type="range"]::-moz-range-thumb {
       <button class="pause-btn" onclick="goToSettings()" style="border-color:var(--accent-purple);color:var(--accent-purple);">⚙️ Change Settings / 設定変更</button>
       <button class="pause-btn quit" onclick="quitTraining()">✕ Quit / 終了</button>
     </div>
+    <!-- Number check overlay (between sessions) -->
+    <div class="pause-overlay" id="numberCheckOverlay" style="z-index:150;">
+      <h2>🔢 Number Check / 数字チェック</h2>
+      <div id="numberCheckContent"></div>
+    </div>
   </div>
 
   <!-- SAVE ORIGINAL DIALOG -->
   <div class="pause-overlay" id="saveOriginalDialog" style="z-index:200;position:fixed;">
-    <h2>⭐ Save Original</h2>
+    <h2>🏋️ Save to My Training</h2>
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
       現在の設定に名前をつけて保存<br>Name this training preset
     </p>
@@ -972,6 +986,7 @@ function showScreen(id) {
     backBtn.style.visibility = 'hidden';
     header.style.display = 'flex';
     document.getElementById('headerTitle').textContent = 'Eye Movement Training';
+    renderOriginals();
   } else if (id === 'training-screen') {
     header.style.display = 'none';
   } else if (id === 'settings-screen') {
@@ -1028,10 +1043,15 @@ function renderOriginals() {
   const container = document.getElementById('originalList');
   if (!container) return;
   const list = getOriginals();
+  const playBtn = document.getElementById('myTrainingPlayBtn');
+
   if (list.length === 0) {
-    container.innerHTML = '<div class="no-originals">まだ保存されていません<br>設定画面から「⭐ Save as Original」で追加できます</div>';
+    container.innerHTML = '<div class="no-originals">まだ保存されていません<br>設定画面から「⭐ Save to My Training」で追加できます</div>';
+    if (playBtn) playBtn.style.display = 'none';
     return;
   }
+
+  if (playBtn) playBtn.style.display = 'inline-block';
 
   const modeLabels = {
     pursuit: 'スムースパースー',
@@ -1055,7 +1075,8 @@ function renderOriginals() {
     else details.push(item.settings.duration + 's');
 
     return `
-      <div class="original-card" onclick="runOriginal(${i})">
+      <div class="original-card">
+        <input type="checkbox" class="original-card-check" data-index="${i}" checked onchange="updateMyTrainingBtn()" onclick="event.stopPropagation()">
         <div class="original-card-icon">${mi}</div>
         <div class="original-card-info">
           <div class="name">${escapeHtml(item.name)}</div>
@@ -1069,6 +1090,15 @@ function renderOriginals() {
       </div>
     `;
   }).join('');
+}
+
+function updateMyTrainingBtn() {
+  const checked = document.querySelectorAll('.original-card-check:checked');
+  const btn = document.getElementById('myTrainingPlayBtn');
+  if (btn) {
+    btn.textContent = `▶ Play (${checked.length})`;
+    btn.style.opacity = checked.length > 0 ? '1' : '0.5';
+  }
 }
 
 function escapeHtml(str) {
@@ -1157,13 +1187,101 @@ function runOriginal(index) {
   const list = getOriginals();
   const item = list[index];
   if (!item) return;
+  state.currentMode = item.mode;
+  Object.assign(state.settings, item.settings);
+  startTraining();
+}
 
-  // Apply saved settings
+// ============================
+// MY TRAINING CHAIN MODE
+// ============================
+function getCheckedOriginalIndices() {
+  const checks = document.querySelectorAll('.original-card-check:checked');
+  return Array.from(checks).map(cb => parseInt(cb.dataset.index));
+}
+
+function startMyTrainingChain() {
+  const indices = getCheckedOriginalIndices();
+  if (indices.length === 0) return;
+  const list = getOriginals();
+  const t = state.training;
+  t._myTrainingQueue = indices.map(i => list[i]).filter(Boolean);
+  t._myTrainingIndex = 0;
+  t._myTrainingMode = false;
+  runNextMyTraining();
+}
+
+function runNextMyTraining() {
+  const t = state.training;
+  const queue = t._myTrainingQueue;
+  if (!queue || t._myTrainingIndex >= queue.length) {
+    showMyTrainingResults();
+    return;
+  }
+  const item = queue[t._myTrainingIndex];
   state.currentMode = item.mode;
   Object.assign(state.settings, item.settings);
 
-  // Go straight to training
+  // Handle all-dirs within my training
+  if (state.settings.direction === 'all-dirs') {
+    // Build all-dirs sub-queue but within my training chain
+    startAllDirs();
+    // After startAllDirs sets up, we need to mark my training mode on completion
+    t._myTrainingAfterAllDirs = true;
+    return;
+  }
+
   startTraining();
+  t._myTrainingMode = true;
+}
+
+function showMyTrainingResults() {
+  const t = state.training;
+  t._myTrainingMode = false;
+  t._finished = false;
+
+  const queue = t._myTrainingQueue || [];
+  // Save for retry
+  t._lastMyTrainingQueue = [...queue];
+  const modeLabels = { pursuit: 'パースー', saccade: 'サッカード', fixation: '注視' };
+
+  let html = `
+    <h2>🏆 My Training Complete!</h2>
+    <div class="result-card">
+      <div class="result-label">Completed / 完了</div>
+      <div class="result-value">${queue.length} trainings</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Menu / メニュー</div>
+      <div style="margin-top:8px;">
+        ${queue.map((item, i) =>
+          `<div style="display:inline-block;margin:3px;padding:6px 12px;border-radius:8px;background:var(--bg-primary);border:1px solid var(--border-color);font-size:12px;">
+            ${escapeHtml(item.name)} ✓
+          </div>`
+        ).join('')}
+      </div>
+    </div>
+    <button class="start-btn" onclick="retryMyTraining()" style="margin-top:12px;">
+      🔄 Retry / もう一度
+    </button>
+    <button class="start-btn" onclick="showScreen('home-screen')" style="background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);margin-top:8px;">
+      🏠 Home / ホームへ
+    </button>
+  `;
+
+  document.getElementById('resultsContent').innerHTML = html;
+  showScreen('results-screen');
+  document.getElementById('headerTitle').textContent = 'Results / 結果';
+}
+
+function retryMyTraining() {
+  const t = state.training;
+  const saved = t._lastMyTrainingQueue;
+  if (!saved || saved.length === 0) { showScreen('home-screen'); return; }
+  t._myTrainingQueue = [...saved];
+  t._myTrainingIndex = 0;
+  t._myTrainingMode = false;
+  runNextMyTraining();
 }
 
 function editOriginalName(index) {
@@ -1221,11 +1339,14 @@ function selectMode(mode, keepSettings) {
   const t = state.training;
   t._continuousMode = false;
   t._allDirsMode = false;
+  t._myTrainingMode = false;
   t._finished = false;
   t.continuousQueue = [];
   t.continuousIndex = 0;
   t._allDirsQueue = null;
+  t._myTrainingQueue = null;
   t._allDirsIndex = 0;
+  t._myTrainingIndex = 0;
   buildSettings(mode, keepSettings);
   showScreen('settings-screen');
   const titles = {
@@ -1473,7 +1594,7 @@ function buildSettings(mode, keepSettings) {
       ${durationSection}
       <button class="start-btn" onclick="startTraining()">▶ Start Training / 開始</button>
       <button class="start-btn" onclick="showSaveOriginalDialog()" style="background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);margin-top:8px;font-size:14px;">
-        ⭐ Save as Original / オリジナルとして保存
+        ⭐ Save to My Training / マイトレーニングに保存
       </button>
     `;
   }
@@ -1598,6 +1719,7 @@ function startTraining() {
   // These will be re-set ONLY by runNextContinuous / runNextAllDirs after this call
   t._continuousMode = false;
   t._allDirsMode = false;
+  t._myTrainingMode = false;
   t._finished = false;
 
   const modeTitles = {
@@ -1636,6 +1758,15 @@ function showCountdown(callback) {
     const idx = (state.training._allDirsIndex || 0) + 1;
     const total = state.training._allDirsQueue ? state.training._allDirsQueue.length : '?';
     modeText += ` (${idx}/${total}) ${dirLabel}`;
+  }
+  // Show myTraining progress
+  if (state.training._myTrainingMode || state.training._myTrainingAfterAllDirs) {
+    const q = state.training._myTrainingQueue;
+    if (q && q.length > 0) {
+      const idx = (state.training._myTrainingIndex || 0) + 1;
+      const name = q[state.training._myTrainingIndex] ? q[state.training._myTrainingIndex].name : '';
+      modeText = `🏋️ ${idx}/${q.length} ${name}`;
+    }
   }
   // Show hiragana prompt
   if (state.settings.targetType === 'hiragana') {
@@ -2044,7 +2175,9 @@ function startAllDirs() {
     direction: d, duration: state.settings.duration
   }));
   t._allDirsIndex = 0;
-  t._allDirsMode = false; // will be set in runNextAllDirs
+  t._myTrainingIndex = 0;
+  t._allDirsMode = false;
+  t._myTrainingMode = false; // will be set in runNextAllDirs
   t._allDirsResults = [];
   runNextAllDirs();
 }
@@ -2060,9 +2193,7 @@ function runNextAllDirs() {
   state.settings.direction = item.direction;
   state.settings.duration = item.duration;
 
-  // Preserve tracking across sessions
-  const prevSum = t.numberSum || 0;
-  const prevNumbers = t.numbers ? [...t.numbers] : [];
+  // Preserve hiragana tracking across sessions (numbers are checked per-session)
   const prevHiragana = t.hiraganaHistory ? [...t.hiraganaHistory] : [];
   const prevPrompt = t._hiraganaPrompt;
   const prevTopic = t._hiraganaTopic;
@@ -2070,9 +2201,7 @@ function runNextAllDirs() {
   // Call the real startTraining (direction is no longer 'all-dirs')
   startTraining();
 
-  // Restore tracking
-  t.numberSum = prevSum;
-  t.numbers = prevNumbers;
+  // Restore hiragana tracking
   t.hiraganaHistory = prevHiragana;
   t._hiraganaPrompt = prevPrompt;
   t._hiraganaTopic = prevTopic;
@@ -2083,11 +2212,27 @@ function runNextAllDirs() {
 
 function showAllDirsResults() {
   const t = state.training;
+
+  // If within myTraining chain, continue to next training
+  if (t._myTrainingAfterAllDirs) {
+    t._myTrainingAfterAllDirs = false;
+    t._allDirsMode = false;
+    t._myTrainingMode = false;
+    t._finished = false;
+    t._myTrainingIndex++;
+    setTimeout(() => runNextMyTraining(), 800);
+    return;
+  }
+
+  const savedQueue = t._allDirsQueue || [];
   t._allDirsMode = false;
+  t._myTrainingMode = false;
   t._continuousMode = false;
   t._finished = false;
   t._allDirsQueue = null;
+  t._myTrainingQueue = null;
   t._allDirsIndex = 0;
+  t._myTrainingIndex = 0;
   const modeTitles = {
     pursuit: 'Smooth Pursuit / スムースパースー',
     saccade: 'Saccade / サッカード'
@@ -2101,12 +2246,12 @@ function showAllDirsResults() {
     </div>
     <div class="result-card">
       <div class="result-label">Directions / 方向</div>
-      <div class="result-value">${t._allDirsQueue.length} directions × ${t._allDirsQueue[0].duration}s</div>
+      <div class="result-value">${savedQueue.length} directions × ${savedQueue[0] ? savedQueue[0].duration : '?'}s</div>
     </div>
     <div class="result-card">
       <div class="result-label">Completed / 完了</div>
       <div style="margin-top:8px;">
-        ${t._allDirsQueue.map((item, i) =>
+        ${savedQueue.map((item, i) =>
           `<div style="display:inline-block;margin:3px;padding:6px 12px;border-radius:8px;background:var(--bg-primary);border:1px solid var(--border-color);font-size:13px;">
             ${DIR_LABELS[item.direction] || item.direction} ✓
           </div>`
@@ -2114,19 +2259,6 @@ function showAllDirsResults() {
       </div>
     </div>
   `;
-
-  // Number tracking
-  if (state.settings.targetType === 'number' && t.numbers.length > 0) {
-    html += `
-      <div class="number-input-area">
-        <label>Enter the sum of all numbers / 数字の合計を入力</label>
-        <input type="number" id="numberAnswer" inputmode="numeric" pattern="[0-9]*">
-        <br><br>
-        <button class="start-btn" onclick="checkNumber()" style="width:auto;display:inline-block;padding:10px 30px;">
-          Check / 確認
-        </button>
-      </div>`;
-  }
 
   // Hiragana history
   if (state.settings.targetType === 'hiragana' && t.hiraganaHistory && t.hiraganaHistory.length > 0) {
@@ -2203,22 +2335,18 @@ function runNextContinuous() {
   if (item.mode === 'fixation') {
     state.settings.fixationPerPos = Math.max(2, Math.round(item.duration / 9));
   }
-  // Preserve number tracking across sessions
-  const prevSum = t.numberSum;
-  const prevNumbers = [...t.numbers];
-
   startTraining();
 
-  t.numberSum = prevSum;
-  t.numbers = prevNumbers;
   // Override finish to go to next
   t._continuousMode = true;
 }
 
 function showContinuousResults() {
   const t = state.training;
+  const savedQueue = t.continuousQueue || [];
   t._continuousMode = false;
   t._allDirsMode = false;
+  t._myTrainingMode = false;
   t._finished = false;
   t.continuousQueue = [];
   t.continuousIndex = 0;
@@ -2232,23 +2360,9 @@ function showContinuousResults() {
     </div>
     <div class="result-card">
       <div class="result-label">Total Sessions / 総セッション</div>
-      <div class="result-value">${state.training.continuousQueue.length}</div>
+      <div class="result-value">${savedQueue.length}</div>
     </div>
   `;
-
-  if (state.settings.targetType === 'number' && t.numbers.length > 0) {
-    html += `
-      <div class="number-input-area">
-        <label>Enter the sum of all numbers / 数字の合計を入力</label>
-        <input type="number" id="numberAnswer" inputmode="numeric" pattern="[0-9]*">
-        <br><br>
-        <button class="start-btn" onclick="checkContinuousNumber()" style="width:auto;display:inline-block;padding:10px 30px;">
-          Check / 確認
-        </button>
-        <div id="continuousNumberResult"></div>
-      </div>
-    `;
-  }
 
   html += `
   <button class="start-btn" onclick="startContinuous()" style="margin-top:16px;">
@@ -2493,13 +2607,18 @@ function quitTraining() {
   t.paused = false;
   t._continuousMode = false;
   t._allDirsMode = false;
+  t._myTrainingMode = false;
+  t._myTrainingAfterAllDirs = false;
   t._finished = false;
   t.continuousQueue = [];
   t.continuousIndex = 0;
   t._allDirsQueue = null;
+  t._myTrainingQueue = null;
   t._allDirsIndex = 0;
+  t._myTrainingIndex = 0;
   if (t.animFrame) cancelAnimationFrame(t.animFrame);
   document.getElementById('pauseOverlay').classList.remove('active');
+  document.getElementById('numberCheckOverlay').classList.remove('active');
   window.removeEventListener('resize', resizeCanvas);
   showScreen('home-screen');
 }
@@ -2510,13 +2629,18 @@ function goToSettings() {
   t.paused = false;
   t._continuousMode = false;
   t._allDirsMode = false;
+  t._myTrainingMode = false;
+  t._myTrainingAfterAllDirs = false;
   t._finished = false;
   t.continuousQueue = [];
   t.continuousIndex = 0;
   t._allDirsQueue = null;
+  t._myTrainingQueue = null;
   t._allDirsIndex = 0;
+  t._myTrainingIndex = 0;
   if (t.animFrame) cancelAnimationFrame(t.animFrame);
   document.getElementById('pauseOverlay').classList.remove('active');
+  document.getElementById('numberCheckOverlay').classList.remove('active');
   window.removeEventListener('resize', resizeCanvas);
   selectMode(state.currentMode, true);
 }
@@ -2533,19 +2657,26 @@ function finishTraining() {
   window.removeEventListener('resize', resizeCanvas);
   playBeep(1000, 0.3);
 
-  // If continuous mode, go to next (ONLY if explicitly flagged)
+  // Determine what comes next
+  let nextFn = null;
   if (t._continuousMode === true) {
-    t._finished = false; // allow next session to finish
-    t.continuousIndex++;
-    setTimeout(() => runNextContinuous(), 800);
+    nextFn = () => { t.continuousIndex++; runNextContinuous(); };
+  } else if (t._allDirsMode === true) {
+    nextFn = () => { t._allDirsIndex++; runNextAllDirs(); };
+  } else if (t._myTrainingMode === true) {
+    nextFn = () => { t._myTrainingIndex++; runNextMyTraining(); };
+  }
+
+  // If numbers were used AND we're in a chain mode, show number check overlay BEFORE continuing
+  if (nextFn && state.settings.targetType === 'number' && t.numbers.length > 0) {
+    showNumberCheckOverlay(nextFn);
     return;
   }
 
-  // If all-dirs mode, go to next direction (ONLY if explicitly flagged)
-  if (t._allDirsMode === true) {
-    t._finished = false; // allow next session to finish
-    t._allDirsIndex++;
-    setTimeout(() => runNextAllDirs(), 800);
+  // If in a chain mode (no numbers), go to next
+  if (nextFn) {
+    t._finished = false;
+    setTimeout(nextFn, 800);
     return;
   }
 
@@ -2643,6 +2774,79 @@ function finishTraining() {
   showScreen('results-screen');
 }
 
+// ============================
+// NUMBER CHECK OVERLAY (between sessions)
+// ============================
+function showNumberCheckOverlay(nextFn) {
+  const t = state.training;
+  const overlay = document.getElementById('numberCheckOverlay');
+  const content = document.getElementById('numberCheckContent');
+
+  content.innerHTML = `
+    <p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;">
+      数字の合計を入力してください<br>Enter the sum of all numbers
+    </p>
+    <input type="number" id="numCheckInput" inputmode="numeric" pattern="[0-9]*"
+           style="width:100%;max-width:200px;padding:10px 14px;border:1px solid var(--border-color);border-radius:8px;font-size:18px;text-align:center;margin-bottom:8px;box-sizing:border-box;">
+    <div id="numCheckResult" style="margin-bottom:12px;min-height:40px;"></div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+      <button class="pause-btn resume" onclick="checkNumOverlay()" style="flex:1;max-width:140px;">✅ Check / 確認</button>
+      <button class="pause-btn" id="numCheckNextBtn" onclick="dismissNumberCheck()" style="flex:1;max-width:140px;border-color:var(--accent-blue);color:var(--accent-blue);display:none;">
+        ▶ Next / 次へ
+      </button>
+    </div>
+  `;
+
+  overlay.classList.add('active');
+  t._numberCheckNextFn = nextFn;
+  setTimeout(() => {
+    const inp = document.getElementById('numCheckInput');
+    if (inp) inp.focus();
+  }, 100);
+}
+
+function checkNumOverlay() {
+  const t = state.training;
+  const input = parseInt(document.getElementById('numCheckInput').value);
+  const correct = t.numberSum;
+  const el = document.getElementById('numCheckResult');
+  const nextBtn = document.getElementById('numCheckNextBtn');
+
+  if (input === correct) {
+    el.innerHTML = `<div style="color:var(--accent-green);font-weight:bold;font-size:16px;">✅ Correct! / 正解! (${correct})</div>`;
+    playBeep(800, 0.2);
+  } else {
+    el.innerHTML = `<div style="color:#e74c3c;font-weight:bold;font-size:14px;">❌ Incorrect / 不正解<br>あなた: ${isNaN(input) ? '—' : input} / 正解: ${correct}</div>`;
+    playBeep(300, 0.3);
+  }
+
+  // Show next button (or finish button for single training)
+  if (nextBtn) {
+    nextBtn.style.display = 'inline-block';
+    nextBtn.textContent = t._numberCheckNextFn ? '▶ Next / 次へ' : '🏠 Results / 結果へ';
+  }
+}
+
+function dismissNumberCheck() {
+  const t = state.training;
+  const overlay = document.getElementById('numberCheckOverlay');
+  overlay.classList.remove('active');
+
+  const nextFn = t._numberCheckNextFn;
+  t._numberCheckNextFn = null;
+
+  if (nextFn) {
+    // Chain mode: continue to next session
+    t._finished = false;
+    setTimeout(nextFn, 500);
+  } else {
+    // Single training: show normal results (re-trigger finishTraining without numbers)
+    t._finished = false;
+    t.numbers = []; // Clear to skip number check this time
+    finishTraining();
+  }
+}
+
 function checkNumber() {
   const input = parseInt(document.getElementById('numberAnswer').value);
   const correct = state.training.numberSum;
@@ -2658,7 +2862,7 @@ function checkNumber() {
 
 // Prevent all unwanted scrolling/zooming
 document.addEventListener('touchmove', function(e) {
-  if (!e.target.closest('#home-screen, #settings-screen, #results-screen, #sideMenu, #saveOriginalDialog')) {
+  if (!e.target.closest('#home-screen, #settings-screen, #results-screen, #sideMenu, #saveOriginalDialog, #numberCheckOverlay')) {
     e.preventDefault();
   }
 }, { passive: false });
