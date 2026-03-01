@@ -1217,6 +1217,15 @@ function deleteOriginal(index) {
 function selectMode(mode, keepSettings) {
   state.currentMode = mode;
   if (!keepSettings) state._editingOriginalIndex = null;
+  // Clear any continuation state from previous sessions
+  const t = state.training;
+  t._continuousMode = false;
+  t._allDirsMode = false;
+  t._finished = false;
+  t.continuousQueue = [];
+  t.continuousIndex = 0;
+  t._allDirsQueue = null;
+  t._allDirsIndex = 0;
   buildSettings(mode, keepSettings);
   showScreen('settings-screen');
   const titles = {
@@ -1281,6 +1290,7 @@ function buildSettings(mode, keepSettings) {
             <div class="option-btn ${normalSel ? sel(s.direction,'diag-right') : ''}" onclick="selectDir('diag-right',this)">⤢ Right Diag / 右斜め</div>
             <div class="option-btn ${normalSel ? sel(s.direction,'diag-left') : ''}" onclick="selectDir('diag-left',this)">⤡ Left Diag / 左斜め</div>
             <div class="option-btn ${normalSel ? sel(s.direction,'random') : ''}" onclick="selectDir('random',this)">🔀 Random / ランダム</div>
+            <div class="option-btn ${normalSel ? sel(s.direction,'all-dirs') : ''}" onclick="selectDir('all-dirs',this)">🔄 All Sequential / 全方向連続</div>
           </div>
         </div>
         <div class="checkbox-row" style="margin-top:12px;">
@@ -1312,6 +1322,7 @@ function buildSettings(mode, keepSettings) {
           <div class="option-btn ${sel(s.direction,'diag-right')}" onclick="selectDir('diag-right',this)">⤢ Right Diag / 右斜め</div>
           <div class="option-btn ${sel(s.direction,'diag-left')}" onclick="selectDir('diag-left',this)">⤡ Left Diag / 左斜め</div>
           <div class="option-btn ${sel(s.direction,'random')}" onclick="selectDir('random',this)">🔀 Random / ランダム</div>
+          <div class="option-btn ${sel(s.direction,'all-dirs')}" onclick="selectDir('all-dirs',this)">🔄 All Sequential / 全方向連続</div>
         </div>
       `;
     }
@@ -1563,6 +1574,12 @@ function resizeCanvas() {
 }
 
 function startTraining() {
+  // Intercept all-dirs: build queue and chain
+  if (state.settings.direction === 'all-dirs') {
+    startAllDirs();
+    return;
+  }
+
   resumeAudio();
   showScreen('training-screen');
   resizeCanvas();
@@ -1577,11 +1594,22 @@ function startTraining() {
   t.numbers = [];
   t.currentNumber = 0;
   t.numberChangeTimer = 0;
+  // CRITICAL: Reset ALL auto-continuation flags and state
+  // These will be re-set ONLY by runNextContinuous / runNextAllDirs after this call
+  t._continuousMode = false;
+  t._allDirsMode = false;
+  t._finished = false;
 
   const modeTitles = {
     pursuit: 'スムースパースー', saccade: 'サッカード', fixation: '注視'
   };
-  document.getElementById('hudMode').textContent = modeTitles[state.currentMode] || state.currentMode;
+  let hudText = modeTitles[state.currentMode] || state.currentMode;
+  // Show direction progress in all-dirs mode
+  if (t._allDirsMode || (t._allDirsQueue && t._allDirsIndex != null)) {
+    const dirLabel = DIR_LABELS ? (DIR_LABELS[state.settings.direction] || '') : '';
+    hudText += ` ${dirLabel}`;
+  }
+  document.getElementById('hudMode').textContent = hudText;
 
   showCountdown(() => {
     t.startTime = performance.now();
@@ -1602,6 +1630,13 @@ function showCountdown(callback) {
     fixation: 'Gaze Fixation / 注視'
   };
   let modeText = modeTitles[state.currentMode] || '';
+  // Show direction in all-dirs mode
+  if (state.training._allDirsMode || (state.training._allDirsQueue && state.training._allDirsIndex != null)) {
+    const dirLabel = DIR_LABELS[state.settings.direction] || state.settings.direction;
+    const idx = (state.training._allDirsIndex || 0) + 1;
+    const total = state.training._allDirsQueue ? state.training._allDirsQueue.length : '?';
+    modeText += ` (${idx}/${total}) ${dirLabel}`;
+  }
   // Show hiragana prompt
   if (state.settings.targetType === 'hiragana') {
     const topic = HIRAGANA_TOPICS[Math.floor(Math.random() * HIRAGANA_TOPICS.length)];
@@ -1991,6 +2026,145 @@ function updateFixation() {
 // ============================
 // CONTINUOUS MODE
 // ============================
+// ============================
+// ALL-DIRS SEQUENTIAL MODE
+// ============================
+const ALL_DIRS_PURSUIT = ['horizontal', 'vertical', 'diag-right', 'diag-left', 'random'];
+const ALL_DIRS_SACCADE = ['horizontal', 'vertical', 'diag-right', 'diag-left', 'random'];
+const DIR_LABELS = {
+  horizontal: '↔ 左右', vertical: '↕ 上下',
+  'diag-right': '⤢ 右斜め', 'diag-left': '⤡ 左斜め', random: '🔀 ランダム'
+};
+
+function startAllDirs() {
+  const mode = state.currentMode;
+  const dirs = mode === 'pursuit' ? ALL_DIRS_PURSUIT : ALL_DIRS_SACCADE;
+  const t = state.training;
+  t._allDirsQueue = dirs.map(d => ({
+    direction: d, duration: state.settings.duration
+  }));
+  t._allDirsIndex = 0;
+  t._allDirsMode = false; // will be set in runNextAllDirs
+  t._allDirsResults = [];
+  runNextAllDirs();
+}
+
+function runNextAllDirs() {
+  const t = state.training;
+  const queue = t._allDirsQueue;
+  if (t._allDirsIndex >= queue.length) {
+    showAllDirsResults();
+    return;
+  }
+  const item = queue[t._allDirsIndex];
+  state.settings.direction = item.direction;
+  state.settings.duration = item.duration;
+
+  // Preserve tracking across sessions
+  const prevSum = t.numberSum || 0;
+  const prevNumbers = t.numbers ? [...t.numbers] : [];
+  const prevHiragana = t.hiraganaHistory ? [...t.hiraganaHistory] : [];
+  const prevPrompt = t._hiraganaPrompt;
+  const prevTopic = t._hiraganaTopic;
+
+  // Call the real startTraining (direction is no longer 'all-dirs')
+  startTraining();
+
+  // Restore tracking
+  t.numberSum = prevSum;
+  t.numbers = prevNumbers;
+  t.hiraganaHistory = prevHiragana;
+  t._hiraganaPrompt = prevPrompt;
+  t._hiraganaTopic = prevTopic;
+
+  // Set flag AFTER startTraining resets it
+  t._allDirsMode = true;
+}
+
+function showAllDirsResults() {
+  const t = state.training;
+  t._allDirsMode = false;
+  t._continuousMode = false;
+  t._finished = false;
+  t._allDirsQueue = null;
+  t._allDirsIndex = 0;
+  const modeTitles = {
+    pursuit: 'Smooth Pursuit / スムースパースー',
+    saccade: 'Saccade / サッカード'
+  };
+
+  let html = `
+    <h2>🏆 All Directions Complete!</h2>
+    <div class="result-card">
+      <div class="result-label">Mode / モード</div>
+      <div class="result-value" style="font-size:18px;">${modeTitles[state.currentMode]}</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Directions / 方向</div>
+      <div class="result-value">${t._allDirsQueue.length} directions × ${t._allDirsQueue[0].duration}s</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Completed / 完了</div>
+      <div style="margin-top:8px;">
+        ${t._allDirsQueue.map((item, i) =>
+          `<div style="display:inline-block;margin:3px;padding:6px 12px;border-radius:8px;background:var(--bg-primary);border:1px solid var(--border-color);font-size:13px;">
+            ${DIR_LABELS[item.direction] || item.direction} ✓
+          </div>`
+        ).join('')}
+      </div>
+    </div>
+  `;
+
+  // Number tracking
+  if (state.settings.targetType === 'number' && t.numbers.length > 0) {
+    html += `
+      <div class="number-input-area">
+        <label>Enter the sum of all numbers / 数字の合計を入力</label>
+        <input type="number" id="numberAnswer" inputmode="numeric" pattern="[0-9]*">
+        <br><br>
+        <button class="start-btn" onclick="checkNumber()" style="width:auto;display:inline-block;padding:10px 30px;">
+          Check / 確認
+        </button>
+      </div>`;
+  }
+
+  // Hiragana history
+  if (state.settings.targetType === 'hiragana' && t.hiraganaHistory && t.hiraganaHistory.length > 0) {
+    const topic = t._hiraganaTopic;
+    const listHtml = t.hiraganaHistory.map((h) => {
+      const ex = topic && topic.examples[h] ? topic.examples[h] : '—';
+      return `<div style="display:inline-flex;align-items:center;gap:4px;margin:3px;padding:4px 10px 4px 4px;border-radius:8px;background:var(--bg-primary);border:1px solid var(--border-color);">
+        <span style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;border-radius:6px;background:var(--accent-blue);color:#fff;font-size:15px;font-weight:bold;">${h}</span>
+        <span style="font-size:13px;color:var(--text-primary);">${ex}</span>
+      </div>`;
+    }).join('');
+    html += `
+    <div class="result-card">
+      <div class="result-label">📝 ${t._hiraganaPrompt || ''}</div>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;justify-content:center;">${listHtml}</div>
+    </div>`;
+  }
+
+  html += `
+    <button class="start-btn" onclick="state.settings.direction='all-dirs';startTraining()" style="margin-top:12px;">
+      🔄 Retry All / もう一度
+    </button>
+    <button class="start-btn" onclick="selectMode('${state.currentMode}',true)" style="background:var(--accent-purple);margin-top:8px;">
+      ⚙️ Change Settings / 設定を変更
+    </button>
+    <button class="start-btn" onclick="showScreen('home-screen')" style="background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);margin-top:8px;">
+      🏠 Home / ホームへ
+    </button>
+  `;
+
+  document.getElementById('resultsContent').innerHTML = html;
+  showScreen('results-screen');
+  document.getElementById('headerTitle').textContent = 'Results / 結果';
+}
+
+// ============================
+// CONTINUOUS MODE
+// ============================
 function startContinuous() {
   const preset = CONTINUOUS_PRESETS[state.settings.continuousLevel];
   state.settings.speed = preset.speed;
@@ -2042,8 +2216,12 @@ function runNextContinuous() {
 }
 
 function showContinuousResults() {
-  state.training._continuousMode = false;
   const t = state.training;
+  t._continuousMode = false;
+  t._allDirsMode = false;
+  t._finished = false;
+  t.continuousQueue = [];
+  t.continuousIndex = 0;
   let html = `
     <h2>🏆 Continuous Training Complete!</h2>
     <div class="result-card">
@@ -2313,6 +2491,13 @@ function quitTraining() {
   const t = state.training;
   t.active = false;
   t.paused = false;
+  t._continuousMode = false;
+  t._allDirsMode = false;
+  t._finished = false;
+  t.continuousQueue = [];
+  t.continuousIndex = 0;
+  t._allDirsQueue = null;
+  t._allDirsIndex = 0;
   if (t.animFrame) cancelAnimationFrame(t.animFrame);
   document.getElementById('pauseOverlay').classList.remove('active');
   window.removeEventListener('resize', resizeCanvas);
@@ -2323,6 +2508,13 @@ function goToSettings() {
   const t = state.training;
   t.active = false;
   t.paused = false;
+  t._continuousMode = false;
+  t._allDirsMode = false;
+  t._finished = false;
+  t.continuousQueue = [];
+  t.continuousIndex = 0;
+  t._allDirsQueue = null;
+  t._allDirsIndex = 0;
   if (t.animFrame) cancelAnimationFrame(t.animFrame);
   document.getElementById('pauseOverlay').classList.remove('active');
   window.removeEventListener('resize', resizeCanvas);
@@ -2331,19 +2523,33 @@ function goToSettings() {
 
 function finishTraining() {
   const t = state.training;
+
+  // Guard: prevent double-finish
+  if (t._finished) return;
+  t._finished = true;
+
   t.active = false;
   if (t.animFrame) cancelAnimationFrame(t.animFrame);
   window.removeEventListener('resize', resizeCanvas);
   playBeep(1000, 0.3);
 
-  // If continuous mode, go to next
-  if (t._continuousMode) {
+  // If continuous mode, go to next (ONLY if explicitly flagged)
+  if (t._continuousMode === true) {
+    t._finished = false; // allow next session to finish
     t.continuousIndex++;
     setTimeout(() => runNextContinuous(), 800);
     return;
   }
 
-  // Show results
+  // If all-dirs mode, go to next direction (ONLY if explicitly flagged)
+  if (t._allDirsMode === true) {
+    t._finished = false; // allow next session to finish
+    t._allDirsIndex++;
+    setTimeout(() => runNextAllDirs(), 800);
+    return;
+  }
+
+  // === SINGLE TRAINING: always show results ===
   const modeTitles = {
     pursuit: 'Smooth Pursuit / スムースパースー',
     saccade: 'Saccade / サッカード',
