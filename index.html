@@ -767,7 +767,7 @@ const state = {
     bgPattern: 'solid',
     duration: 30,
     oneWay: false,
-    fixationPerPos: 3,
+    fixationPerPos: 5,
     continuousLevel: 'beginner'
   },
   training: {
@@ -1224,12 +1224,13 @@ function runNextMyTraining() {
 
   // Handle all-dirs within my training
   if (state.settings.direction === 'all-dirs') {
-    // Build all-dirs sub-queue but within my training chain
     startAllDirs();
-    // After startAllDirs sets up, we need to mark my training mode on completion
     t._myTrainingAfterAllDirs = true;
     return;
   }
+
+  // Set pending info so countdown can display it (before startTraining resets flags)
+  t._myTrainingPending = { index: t._myTrainingIndex, total: queue.length, name: item.name };
 
   startTraining();
   t._myTrainingMode = true;
@@ -1373,7 +1374,7 @@ function buildSettings(mode, keepSettings) {
     s.bgArea = 'full';
     s.bgPattern = 'solid';
     s.oneWay = false;
-    s.fixationPerPos = 3;
+    s.fixationPerPos = 5;
     s.duration = 30;
   }
 
@@ -1494,10 +1495,10 @@ function buildSettings(mode, keepSettings) {
           9箇所（8方向＋中央）×注視時間で自動終了
         </p>
         <div class="option-grid">
-          <div class="option-btn ${sel(s.fixationPerPos,2)}" onclick="selectFixationPerPos(2,this)">2s</div>
-          <div class="option-btn ${sel(s.fixationPerPos,3)}" onclick="selectFixationPerPos(3,this)">3s</div>
           <div class="option-btn ${sel(s.fixationPerPos,5)}" onclick="selectFixationPerPos(5,this)">5s</div>
-          <div class="option-btn ${sel(s.fixationPerPos,8)}" onclick="selectFixationPerPos(8,this)">8s</div>
+          <div class="option-btn ${sel(s.fixationPerPos,10)}" onclick="selectFixationPerPos(10,this)">10s</div>
+          <div class="option-btn ${sel(s.fixationPerPos,20)}" onclick="selectFixationPerPos(20,this)">20s</div>
+          <div class="option-btn ${sel(s.fixationPerPos,30)}" onclick="selectFixationPerPos(30,this)">30s</div>
         </div>
       </div>
     ` : `
@@ -1731,6 +1732,10 @@ function startTraining() {
     const dirLabel = DIR_LABELS ? (DIR_LABELS[state.settings.direction] || '') : '';
     hudText += ` ${dirLabel}`;
   }
+  // Show myTraining name in HUD
+  if (t._myTrainingPending) {
+    hudText = `🏋️ ${t._myTrainingPending.index + 1}/${t._myTrainingPending.total} ${t._myTrainingPending.name}`;
+  }
   document.getElementById('hudMode').textContent = hudText;
 
   showCountdown(() => {
@@ -1759,14 +1764,11 @@ function showCountdown(callback) {
     const total = state.training._allDirsQueue ? state.training._allDirsQueue.length : '?';
     modeText += ` (${idx}/${total}) ${dirLabel}`;
   }
-  // Show myTraining progress
-  if (state.training._myTrainingMode || state.training._myTrainingAfterAllDirs) {
-    const q = state.training._myTrainingQueue;
-    if (q && q.length > 0) {
-      const idx = (state.training._myTrainingIndex || 0) + 1;
-      const name = q[state.training._myTrainingIndex] ? q[state.training._myTrainingIndex].name : '';
-      modeText = `🏋️ ${idx}/${q.length} ${name}`;
-    }
+  // Show myTraining progress (use pending info set before startTraining)
+  const pending = state.training._myTrainingPending;
+  if (pending) {
+    modeText = `🏋️ ${pending.index + 1}/${pending.total} ${pending.name}`;
+    state.training._myTrainingPending = null;
   }
   // Show hiragana prompt
   if (state.settings.targetType === 'hiragana') {
@@ -2041,6 +2043,8 @@ function initSaccade() {
     t.currentNumber = randomNumber();
     t.numberSum = t.currentNumber;
     t.numbers = [t.currentNumber];
+    t._numberIntervalTimer = performance.now();
+    t._numberNextChange = performance.now() + 5000 + Math.random() * 5000;
   }
   if (state.settings.targetType === 'hiragana') {
     t.currentHiragana = randomHiragana(); if (!t.hiraganaHistory) t.hiraganaHistory = []; t.hiraganaHistory.push(t.currentHiragana);
@@ -2068,11 +2072,16 @@ function updateSaccade() {
     }
     t.saccadeTimer = now;
     playBeep(500, 0.05);
+  }
 
-    if (state.settings.targetType === 'number') {
+  // Numbers change every 5-10s (independent of saccade jumps)
+  if (state.settings.targetType === 'number') {
+    if (!t._numberIntervalTimer) { t._numberIntervalTimer = now; t._numberNextChange = now + 5000 + Math.random() * 5000; }
+    if (now > t._numberNextChange) {
       t.currentNumber = randomNumber();
       t.numberSum += t.currentNumber;
       t.numbers.push(t.currentNumber);
+      t._numberNextChange = now + 5000 + Math.random() * 5000;
     }
   }
 
@@ -2333,7 +2342,7 @@ function runNextContinuous() {
   state.settings.duration = item.duration;
   // For fixation in continuous mode, set per-position time
   if (item.mode === 'fixation') {
-    state.settings.fixationPerPos = Math.max(2, Math.round(item.duration / 9));
+    state.settings.fixationPerPos = Math.max(5, Math.round(item.duration / 9));
   }
   startTraining();
 
