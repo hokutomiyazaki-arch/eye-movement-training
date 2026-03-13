@@ -830,6 +830,7 @@ const SIZES = { small: 10, medium: 18, large: 28, xlarge: 42 };
 // Hiragana topics: each topic has only chars that have valid answers
 // KEY RULE: the key hiragana must match the READING of the answer word
 const HIRAGANA_TOPICS = [
+  // KEY RULE: the key hiragana must match the READING of the answer word
   {
     prompt: 'ひらがなから始まる食べ物をイメージしてください',
     examples: {あ:'あんぱん',い:'いくら',う:'うどん',え:'えびフライ',お:'おにぎり',か:'カレー',き:'きつねうどん',く:'クッキー',け:'ケーキ',こ:'コロッケ',さ:'サラダ',し:'しょうゆ',す:'すし',せ:'せんべい',そ:'そば',た:'たこ焼き',ち:'チーズ',つ:'つけもの',て:'天ぷら',と:'とうふ',な:'なべ',に:'にくまん',ぬ:'ぬか漬け',ね:'ねぎ焼き',の:'のりまき',は:'ハンバーグ',ひ:'ひやしうどん',ふ:'フライドポテト',ほ:'ほっけ',ま:'まんじゅう',み:'味噌汁',む:'蒸しパン',め:'メンチカツ',も:'もち',や:'焼きそば',ゆ:'ゆでたまご',よ:'ようかん',ら:'ラーメン',り:'リゾット',れ:'レモン',わ:'わさび'}
@@ -851,20 +852,20 @@ const HIRAGANA_TOPICS = [
     examples: {あ:'アジ',い:'イワシ',う:'ウナギ',え:'エイ',お:'おこぜ',か:'カツオ',き:'キス',こ:'コイ',さ:'サケ',し:'シラス',す:'スズキ',た:'タイ',ち:'ちりめんじゃこ',と:'トビウオ',な:'ナマズ',に:'ニシン',は:'ハマチ',ひ:'ヒラメ',ふ:'フグ',ほ:'ホッケ',ま:'マグロ',め:'メバル'}
   },
   {
-    prompt: 'ひらがなから始まる花をイメージしてください',
-    examples: {あ:'アサガオ',い:'いちりんそう',う:'ウメ',え:'エーデルワイス',お:'おだまき',か:'カーネーション',き:'キク',く:'クロッカス',け:'ケイトウ',こ:'コスモス',さ:'サクラ',し:'シクラメン',す:'スイセン',せ:'セージ',そ:'ソメイヨシノ',た:'タンポポ',ち:'チューリップ',つ:'ツバキ',て:'テッセン',な:'ナノハナ',に:'ニチニチソウ',の:'ノギク',は:'ハナミズキ',ひ:'ヒマワリ',ふ:'フジ',ほ:'ホオズキ',ま:'マーガレット',み:'ミモザ',む:'ムスカリ',も:'モクレン',や:'ヤマブキ',ゆ:'ユリ',よ:'ヨモギ',ら:'ラベンダー',り:'リンドウ',れ:'レンゲ'}
-  },
-  {
     prompt: 'ひらがなから始まる都道府県をイメージしてください',
     examples: {あ:'愛知',い:'茨城',え:'愛媛',お:'大阪',か:'鹿児島',き:'京都',く:'熊本',こ:'高知',さ:'埼玉',し:'静岡',と:'東京',な:'奈良',に:'新潟',ひ:'兵庫',ふ:'福岡',ほ:'北海道',み:'宮城',や:'山口',わ:'和歌山'}
   },
   {
     prompt: 'ひらがなから始まる乗り物をイメージしてください',
-    examples: {お:'オートバイ',か:'カヌー',き:'気球',く:'車',さ:'三輪車',し:'新幹線',す:'スクーター',せ:'潜水艦',そ:'そり',た:'タクシー',ち:'地下鉄',と:'トラック',ひ:'飛行機',ふ:'フェリー',ほ:'ホバークラフト',も:'モノレール',よ:'ヨット',ろ:'ロケット'}
+    examples: {お:'オートバイ',か:'カヌー',き:'気球',く:'車',さ:'三輪車',し:'新幹線',す:'スクーター',せ:'潜水艦',そ:'そり',た:'タクシー',ち:'地下鉄',と:'トラック',ひ:'飛行機',ふ:'フェリー',も:'モノレール',よ:'ヨット',ろ:'ロケット'}
   },
   {
     prompt: 'ひらがなから始まるスポーツをイメージしてください',
-    examples: {あ:'アーチェリー',い:'一輪車競技',う:'ウエイトリフティング',え:'エアロビクス',お:'オリエンテーリング',か:'空手',き:'競泳',く:'クリケット',け:'剣道',さ:'サッカー',し:'新体操',す:'相撲',せ:'セーリング',そ:'ソフトボール',た:'卓球',ち:'チアリーディング',て:'テニス',と:'飛び込み',な:'なわとび',は:'ハンドボール',ふ:'フェンシング',ほ:'ホッケー',ま:'マラソン',や:'野球',ら:'ラグビー',り:'陸上'}
+    examples: {え:'エアロビクス',か:'空手',き:'競泳',け:'剣道',さ:'サッカー',し:'新体操',す:'相撲',そ:'ソフトボール',た:'卓球',て:'テニス',と:'飛び込み',な:'なわとび',は:'ハンドボール',ほ:'ホッケー',ま:'マラソン',や:'野球',ら:'ラグビー',り:'陸上'}
+  },
+  {
+    prompt: 'ひらがなから始まる国の名前をイメージしてください',
+    examples: {あ:'アメリカ',い:'イタリア',う:'ウクライナ',え:'エジプト',お:'オーストラリア',か:'カナダ',き:'キューバ',く:'クロアチア',け:'ケニア',こ:'コロンビア',さ:'サウジアラビア',し:'シンガポール',す:'スペイン',せ:'セルビア',た:'タイ',ち:'チリ',つ:'ツバル',と:'トルコ',な:'ナイジェリア',に:'ニュージーランド',ね:'ネパール',の:'ノルウェー',は:'ハンガリー',ふ:'フランス',ほ:'ホンジュラス',ま:'マレーシア',み:'ミャンマー',め:'メキシコ',も:'モロッコ',ら:'ラオス',り:'リビア',ろ:'ロシア'}
   }
 ];
 
@@ -2202,18 +2203,8 @@ function runNextAllDirs() {
   state.settings.direction = item.direction;
   state.settings.duration = item.duration;
 
-  // Preserve hiragana tracking across sessions (numbers are checked per-session)
-  const prevHiragana = t.hiraganaHistory ? [...t.hiraganaHistory] : [];
-  const prevPrompt = t._hiraganaPrompt;
-  const prevTopic = t._hiraganaTopic;
-
-  // Call the real startTraining (direction is no longer 'all-dirs')
+  // Each direction gets its own hiragana topic and history (independent)
   startTraining();
-
-  // Restore hiragana tracking
-  t.hiraganaHistory = prevHiragana;
-  t._hiraganaPrompt = prevPrompt;
-  t._hiraganaTopic = prevTopic;
 
   // Set flag AFTER startTraining resets it
   t._allDirsMode = true;
@@ -2268,23 +2259,6 @@ function showAllDirsResults() {
       </div>
     </div>
   `;
-
-  // Hiragana history
-  if (state.settings.targetType === 'hiragana' && t.hiraganaHistory && t.hiraganaHistory.length > 0) {
-    const topic = t._hiraganaTopic;
-    const listHtml = t.hiraganaHistory.map((h) => {
-      const ex = topic && topic.examples[h] ? topic.examples[h] : '—';
-      return `<div style="display:inline-flex;align-items:center;gap:4px;margin:3px;padding:4px 10px 4px 4px;border-radius:8px;background:var(--bg-primary);border:1px solid var(--border-color);">
-        <span style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;border-radius:6px;background:var(--accent-blue);color:#fff;font-size:15px;font-weight:bold;">${h}</span>
-        <span style="font-size:13px;color:var(--text-primary);">${ex}</span>
-      </div>`;
-    }).join('');
-    html += `
-    <div class="result-card">
-      <div class="result-label">📝 ${t._hiraganaPrompt || ''}</div>
-      <div style="margin-top:8px;display:flex;flex-wrap:wrap;justify-content:center;">${listHtml}</div>
-    </div>`;
-  }
 
   html += `
     <button class="start-btn" onclick="state.settings.direction='all-dirs';startTraining()" style="margin-top:12px;">
@@ -2682,7 +2656,13 @@ function finishTraining() {
     return;
   }
 
-  // If in a chain mode (no numbers), go to next
+  // If hiragana was used AND we're in a chain mode, show hiragana answers BEFORE continuing
+  if (nextFn && state.settings.targetType === 'hiragana' && t.hiraganaHistory && t.hiraganaHistory.length > 0) {
+    showHiraganaAnswerOverlay(nextFn);
+    return;
+  }
+
+  // If in a chain mode (no numbers/hiragana), go to next
   if (nextFn) {
     t._finished = false;
     setTimeout(nextFn, 800);
@@ -2866,6 +2846,68 @@ function checkNumber() {
   } else {
     el.innerHTML = `<div class="number-result incorrect">❌ Incorrect / 不正解<br>Your answer / あなたの回答: ${input}<br>Correct / 正解: ${correct}</div>`;
     playBeep(300, 0.3);
+  }
+}
+
+// ============================
+// HIRAGANA ANSWER OVERLAY (between sessions)
+// ============================
+function showHiraganaAnswerOverlay(nextFn) {
+  const t = state.training;
+  const overlay = document.getElementById('numberCheckOverlay');
+  const content = document.getElementById('numberCheckContent');
+  const topic = t._hiraganaTopic;
+  const history = t.hiraganaHistory || [];
+
+  const dirLabel = DIR_LABELS ? (DIR_LABELS[state.settings.direction] || '') : '';
+
+  const listHtml = history.map((h) => {
+    const ex = topic && topic.examples[h] ? topic.examples[h] : '—';
+    return `<div style="display:inline-flex;align-items:center;gap:4px;margin:3px;padding:4px 10px 4px 4px;border-radius:8px;background:var(--bg-primary);border:1px solid var(--border-color);">
+      <span style="display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;border-radius:6px;background:var(--accent-blue);color:#fff;font-size:15px;font-weight:bold;">${h}</span>
+      <span style="font-size:13px;color:var(--text-primary);">${ex}</span>
+    </div>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">${dirLabel}</div>
+    <p style="font-size:14px;color:var(--accent-blue);font-weight:bold;margin-bottom:8px;">
+      📝 ${t._hiraganaPrompt || ''}
+    </p>
+    <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;justify-content:center;">
+      ${listHtml}
+    </div>
+    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">
+      表示されたひらがな＋回答例（${history.length}文字）
+    </p>
+    <button class="pause-btn resume" onclick="dismissHiraganaAnswer()" style="max-width:160px;margin:0 auto;">
+      ▶ Next / 次へ
+    </button>
+  `;
+
+  // Change overlay title
+  overlay.querySelector('h2').textContent = 'あ Hiragana Check';
+  overlay.classList.add('active');
+  t._hiraganaAnswerNextFn = nextFn;
+}
+
+function dismissHiraganaAnswer() {
+  const t = state.training;
+  const overlay = document.getElementById('numberCheckOverlay');
+  overlay.classList.remove('active');
+  // Restore overlay title for next use
+  overlay.querySelector('h2').textContent = '🔢 Number Check / 数字チェック';
+
+  const nextFn = t._hiraganaAnswerNextFn;
+  t._hiraganaAnswerNextFn = null;
+
+  if (nextFn) {
+    t._finished = false;
+    setTimeout(nextFn, 500);
+  } else {
+    t._finished = false;
+    t.hiraganaHistory = [];
+    finishTraining();
   }
 }
 
